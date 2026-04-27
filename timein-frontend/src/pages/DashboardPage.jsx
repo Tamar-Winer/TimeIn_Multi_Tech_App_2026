@@ -11,6 +11,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
+import { tasksApi } from '../api/tasks';
 
 const fmt = m => m ? Math.floor(m/60) + ':' + String(m%60).padStart(2,'0') : '0:00';
 const PIE_COLORS = ['#6366f1','#8b5cf6','#3b82f6','#10b981','#f59e0b','#ef4444','#ec4899'];
@@ -138,6 +139,44 @@ function ManagerCharts() {
   );
 }
 
+// ── המשימות שלי (עובד) ───────────────────────────────────────
+const P_COLOR = { low:'#94a3b8', medium:'#f59e0b', high:'#ef4444', urgent:'#dc2626' };
+const P_LABEL = { low:'נמוך', medium:'בינוני', high:'גבוה', urgent:'דחוף' };
+const T_COLOR = { todo:'#64748b', in_progress:'#6366f1', review:'#f59e0b', done:'#10b981', cancelled:'#94a3b8' };
+const T_LABEL = { todo:'לביצוע', in_progress:'בעבודה', review:'בסקירה', done:'הושלם', cancelled:'בוטל' };
+
+function MyTasks({ userId }) {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    tasksApi.getAll({ assignedUserId: userId })
+      .then(data => setTasks(data.filter(t => t.status !== 'done' && t.status !== 'cancelled')))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [userId]);
+  if (loading) return <Spinner />;
+  if (!tasks.length) return null;
+  return (
+    <Card style={{ marginBottom:20 }}>
+      <div style={{ fontSize:13,fontWeight:600,color:'#1e293b',marginBottom:12 }}>המשימות שלי ({tasks.length})</div>
+      {tasks.map(t => {
+        const overdue = t.due_date && new Date(t.due_date) < new Date();
+        return (
+          <div key={t.id} style={{ display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:'1px solid #f1f5f9',fontSize:12 }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontWeight:500,color:'#1e293b' }}>{t.task_name}</div>
+              <div style={{ fontSize:11,color:'#94a3b8',marginTop:2 }}>{t.project_name}</div>
+            </div>
+            {t.due_date && <span style={{ fontSize:11,color:overdue?'#ef4444':'#94a3b8' }}>{overdue?'⚠ ':''}{t.due_date?.slice(0,10)}</span>}
+            <span style={{ fontSize:11,color:P_COLOR[t.priority],fontWeight:500 }}>{P_LABEL[t.priority]}</span>
+            <span style={{ fontSize:11,color:T_COLOR[t.status],background:T_COLOR[t.status]+'18',padding:'2px 8px',borderRadius:4,fontWeight:500 }}>{T_LABEL[t.status]}</span>
+          </div>
+        );
+      })}
+    </Card>
+  );
+}
+
 // ── דף ראשי ──────────────────────────────────────────────────
 export default function DashboardPage() {
   const { user }    = useAuth();
@@ -170,6 +209,9 @@ export default function DashboardPage() {
           <StatCard key={l} label={l} value={v != null ? display : null} color={c} />
         ))}
       </div>
+
+      {/* המשימות שלי – עובד בלבד */}
+      {user?.role === 'employee' && <MyTasks userId={user.id} />}
 
       {/* גרפי מנהל / אדמין */}
       {isManager && (

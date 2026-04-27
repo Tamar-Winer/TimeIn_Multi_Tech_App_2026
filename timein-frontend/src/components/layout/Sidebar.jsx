@@ -3,11 +3,12 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Avatar from '../common/Avatar';
 const NAV = [
-  { to:'/',             label:'דאשבורד',     icon:'⊞', roles:['employee','manager','admin'] },
-  { to:'/report',       label:'דיווח שעות',  icon:'+', roles:['employee','manager','admin'] },
-  { to:'/my-entries',   label:'הדיווחים שלי',icon:'☰', roles:['employee','manager','admin'] },
-  { to:'/management',   label:'ניהול',        icon:'◈', roles:['manager','admin'] },
-  { to:'/integrations', label:'אינטגרציות',   icon:'⇄', roles:['employee','manager','admin'] },
+  { to:'/',             label:'דאשבורד',          icon:'⊞', roles:['employee','manager','admin'] },
+  { to:'/report',       label:'דיווח שעות',       icon:'+', roles:['employee','manager','admin'] },
+  { to:'/my-entries',   label:'הדיווחים שלי',     icon:'☰', roles:['employee','manager','admin'] },
+  { to:'/projects',     label:'פרויקטים ומשימות', icon:'📁', roles:['manager','admin'] },
+  { to:'/management',   label:'ניהול',             icon:'◈', roles:['manager','admin'] },
+  { to:'/integrations', label:'אינטגרציות',        icon:'⇄', roles:['employee','manager','admin'] },
 ];
 export default function Sidebar() {
   const { user, logout } = useAuth();

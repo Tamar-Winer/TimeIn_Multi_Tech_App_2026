@@ -42,4 +42,12 @@ router.patch('/:id', authenticate, requireRole('admin','manager'), async (req, r
   } catch (err) { next(err); }
 });
 
+router.delete('/:id', authenticate, requireRole('admin','manager'), async (req, res, next) => {
+  try {
+    const { rows } = await pool.query('DELETE FROM tasks WHERE id=$1 RETURNING id', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Not found' });
+    res.json({ deleted: rows[0].id });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

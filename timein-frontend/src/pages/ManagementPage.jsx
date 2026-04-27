@@ -5,6 +5,8 @@ import { useTimeEntries } from '../hooks/useTimeEntries';
 import { useReports }     from '../hooks/useReports';
 import { useToast }       from '../context/ToastContext';
 import { usersApi }       from '../api/users';
+import { useProjects }    from '../hooks/useProjects';
+import { integrationsApi } from '../api/integrations';
 import Card    from '../components/common/Card';
 import Badge   from '../components/common/Badge';
 import Spinner from '../components/common/Spinner';
@@ -19,16 +21,30 @@ export default function ManagementPage() {
   const isAdmin       = user?.role === 'admin';
 
   // ── טאב ראשי ────────────────────────────────────────────────
-  const [mainTab, setMainTab] = useState('approvals'); // 'approvals' | 'reports' | 'users'
+  const [mainTab, setMainTab] = useState('approvals'); // 'approvals' | 'reports' | 'commits' | 'users'
+
+  // ── פרויקטים ועובדים לפילטרים ───────────────────────────────
+  const { projects } = useProjects();
+  const [allUsers, setAllUsers] = useState([]);
+  useEffect(() => { usersApi.list().then(setAllUsers).catch(() => {}); }, []);
 
   // ── דוחות ───────────────────────────────────────────────────
   const { data, loading: rLoading, fetch: fetchReport } = useReports();
   const [rType, setRType] = useState('byUser');
-  const [f, setF]         = useState({ status: '', date: '' });
+  const [f, setF]         = useState({ status:'', date:'', userId:'', projectId:'' });
   const { entries, loading, approve, reject } = useTimeEntries(
     Object.fromEntries(Object.entries(f).filter(([, v]) => v))
   );
   useEffect(() => { if (mainTab === 'reports') fetchReport(rType); }, [rType, mainTab]);
+
+  // ── commits ──────────────────────────────────────────────────
+  const [commits, setCommits]   = useState([]);
+  const [cLoad, setCLoad]       = useState(false);
+  useEffect(() => {
+    if (mainTab !== 'commits') return;
+    setCLoad(true);
+    integrationsApi.getCommits().then(setCommits).catch(() => {}).finally(() => setCLoad(false));
+  }, [mainTab]);
 
   // ── ניהול משתמשים (אדמין בלבד) ──────────────────────────────
   const [users, setUsers]           = useState([]);
@@ -97,16 +113,25 @@ export default function ManagementPage() {
       <h2 style={{ fontSize:18,fontWeight:600,marginBottom:20,color:'#1e293b' }}>ניהול</h2>
 
       {/* טאבים ראשיים */}
-      <div style={{ display:'flex',gap:8,marginBottom:20 }}>
+      <div style={{ display:'flex',gap:8,marginBottom:20,flexWrap:'wrap' }}>
         <button style={tabBtn(mainTab==='approvals')} onClick={() => setMainTab('approvals')}>✔ אישור דיווחים</button>
         <button style={tabBtn(mainTab==='reports')}   onClick={() => setMainTab('reports')}>📊 דוחות</button>
+        <button style={tabBtn(mainTab==='commits')}   onClick={() => setMainTab('commits')}>🔗 חיבורי Git</button>
         {isAdmin && <button style={tabBtn(mainTab==='users')} onClick={() => setMainTab('users')}>👥 ניהול משתמשים</button>}
       </div>
 
       {/* ── אישור דיווחים ── */}
       {mainTab === 'approvals' && (
         <Card>
-          <div style={{ display:'flex',gap:10,marginBottom:12 }}>
+          <div style={{ display:'flex',gap:8,marginBottom:12,flexWrap:'wrap' }}>
+            <select value={f.userId} onChange={e=>setF(p=>({...p,userId:e.target.value}))} style={sel}>
+              <option value="">כל העובדים</option>
+              {allUsers.map(u=><option key={u.id} value={u.id}>{u.full_name}</option>)}
+            </select>
+            <select value={f.projectId} onChange={e=>setF(p=>({...p,projectId:e.target.value}))} style={sel}>
+              <option value="">כל הפרויקטים</option>
+              {projects.map(p=><option key={p.id} value={p.id}>{p.project_name}</option>)}
+            </select>
             <select value={f.status} onChange={e=>setF(p=>({...p,status:e.target.value}))} style={sel}>
               <option value="">כל הסטטוסים</option>
               <option value="submitted">ממתינים</option>
@@ -114,6 +139,7 @@ export default function ManagementPage() {
               <option value="rejected">נדחו</option>
             </select>
             <input type="date" value={f.date} onChange={e=>setF(p=>({...p,date:e.target.value}))} style={sel}/>
+            {(f.userId||f.projectId||f.status||f.date) && <button onClick={()=>setF({status:'',date:'',userId:'',projectId:''})} style={{ padding:'7px 12px',borderRadius:8,border:'1px solid #e2e8f0',background:'#fff',fontSize:12,cursor:'pointer' }}>נקה</button>}
           </div>
           {loading && <Spinner />}
           {entries.map(e => (
@@ -158,6 +184,26 @@ export default function ManagementPage() {
               <tbody>{data.map(r=><tr key={r.project_id} style={{ borderTop:'1px solid #f1f5f9' }}><td style={{ padding:'8px 0',fontWeight:500 }}>{r.project_name}</td><td style={{ padding:'8px 0',color:'#6366f1',fontWeight:600 }}>{r.total_hours}ש'</td><td style={{ padding:'8px 0',color:'#64748b' }}>{r.user_count}</td><td style={{ padding:'8px 0',color:'#64748b' }}>{r.entry_count}</td></tr>)}</tbody>
             </table>
           )}
+        </Card>
+      )}
+
+      {/* ── חיבורי Git ── */}
+      {mainTab === 'commits' && (
+        <Card>
+          <div style={{ fontSize:13,fontWeight:500,color:'#64748b',marginBottom:12 }}>commits מקושרים לדיווחי שעות</div>
+          {cLoad && <Spinner />}
+          {!cLoad && !commits.length && <p style={{ color:'#94a3b8',textAlign:'center',padding:40 }}>אין commits עדיין — הוסף commit בדף האינטגרציות</p>}
+          {commits.map(c => (
+            <div key={c.id} style={{ display:'flex',alignItems:'center',gap:10,padding:'10px 0',borderBottom:'1px solid #f1f5f9',fontSize:12 }}>
+              <code style={{ background:'#f1f5f9',padding:'3px 8px',borderRadius:4,fontSize:11,flexShrink:0 }}>{c.commit_hash?.slice(0,7)}</code>
+              <div style={{ flex:1,minWidth:0 }}>
+                <div style={{ color:'#334155',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{c.commit_message}</div>
+                <div style={{ color:'#94a3b8',fontSize:11,marginTop:2 }}>{c.repository} · {c.branch}</div>
+              </div>
+              <span style={{ color:'#64748b',whiteSpace:'nowrap' }}>{c.full_name||'—'}</span>
+              <span style={{ color:'#94a3b8',whiteSpace:'nowrap' }}>{c.commit_date?.slice(0,10)}</span>
+            </div>
+          ))}
         </Card>
       )}
 
