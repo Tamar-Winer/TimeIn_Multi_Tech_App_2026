@@ -1,10 +1,11 @@
 
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useProjects }    from '../hooks/useProjects';
 import { useTasks }       from '../hooks/useTasks';
 import { useTimeEntries } from '../hooks/useTimeEntries';
 import { useToast }       from '../context/ToastContext';
+import { useTimer }       from '../context/TimerContext';
 import Card from '../components/common/Card';
 
 const today = new Date().toISOString().slice(0,10);
@@ -17,11 +18,13 @@ const fmtElapsed = (secs) => {
 };
 
 export default function ReportPage() {
-  const { id }     = useParams();
-  const navigate   = useNavigate();
+  const { id }       = useParams();
+  const navigate     = useNavigate();
+  const location     = useLocation();
   const { addToast } = useToast();
   const { projects }          = useProjects();
   const { entries, create, update } = useTimeEntries();
+  const { timer, start, pause, resume, stop, reset, clearResult } = useTimer();
 
   const [form, setForm] = useState({
     projectId:'', taskId:'', date:today,
@@ -32,43 +35,42 @@ export default function ReportPage() {
   const [saving, setSaving] = useState(false);
   const { tasks } = useTasks({ projectId: form.projectId || undefined });
 
-  // ── טיימר ────────────────────────────────────────────────────
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [elapsed, setElapsed]           = useState(0);
-  const timerStartRef = useRef(null);
-  const intervalRef   = useRef(null);
+  // ── העתקת דיווח קיים ─────────────────────────────────────────
+  useEffect(() => {
+    const cf = location.state?.copyFrom;
+    if (cf && !id) {
+      setForm({
+        projectId:       String(cf.project_id || ''),
+        taskId:          String(cf.task_id || ''),
+        date:            today,
+        startTime:       cf.start_time?.slice(0,5) || '',
+        endTime:         cf.end_time?.slice(0,5)   || '',
+        durationMinutes: String(cf.duration_minutes || ''),
+        workType:        cf.work_type || 'development',
+        description:     cf.description || '',
+        commitHash:      '',
+        clickUpTaskId:   '',
+      });
+    }
+  // eslint-disable-next-line
+  }, []);
 
-  const startTimer = () => {
-    timerStartRef.current = new Date();
-    setElapsed(0);
-    setTimerRunning(true);
-    intervalRef.current = setInterval(() => setElapsed(s => s + 1), 1000);
-  };
-
-  const stopTimer = () => {
-    clearInterval(intervalRef.current);
-    setTimerRunning(false);
-    if (timerStartRef.current) {
-      const now      = new Date();
-      const durMin   = Math.max(1, Math.round((now - timerStartRef.current) / 60000));
+  // ── מילוי טופס אחרי עצירת טיימר ─────────────────────────────
+  useEffect(() => {
+    if (timer.lastResult && !id) {
+      const r = timer.lastResult;
       setForm(prev => ({
         ...prev,
-        startTime:       timerStartRef.current.toTimeString().slice(0,5),
-        endTime:         now.toTimeString().slice(0,5),
-        durationMinutes: String(durMin),
-        date:            now.toISOString().slice(0,10),
+        date:            r.date,
+        startTime:       r.startTime,
+        endTime:         r.endTime,
+        durationMinutes: r.durationMinutes,
+        projectId:       r.projectId || prev.projectId,
+        taskId:          r.taskId    || prev.taskId,
       }));
+      clearResult();
     }
-  };
-
-  const resetTimer = () => {
-    clearInterval(intervalRef.current);
-    setTimerRunning(false);
-    setElapsed(0);
-    timerStartRef.current = null;
-  };
-
-  useEffect(() => () => clearInterval(intervalRef.current), []);
+  }, [timer.lastResult]); // eslint-disable-line
 
   // ── טעינת עריכה ──────────────────────────────────────────────
   useEffect(() => {
@@ -115,10 +117,13 @@ export default function ReportPage() {
     finally { setSaving(false); }
   };
 
+  const handleStart = () => start(form.projectId, form.taskId);
+  const handleStop  = () => stop();
+
   return (
     <div dir="rtl" style={{ fontFamily:'system-ui,sans-serif' }}>
       <h2 style={{ fontSize:18,fontWeight:600,marginBottom:20,color:'#1e293b' }}>
-        {id ? 'עריכת דיווח' : 'דיווח שעות'}
+        {id ? 'עריכת דיווח' : location.state?.copyFrom ? 'העתקת דיווח' : 'דיווח שעות'}
       </h2>
 
       {/* ── טיימר (רק בדיווח חדש) ── */}
@@ -126,41 +131,51 @@ export default function ReportPage() {
         <Card style={{ maxWidth:560,marginBottom:16 }}>
           <div style={{ fontSize:13,fontWeight:600,color:'#1e293b',marginBottom:16 }}>טיימר</div>
           <div style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:16 }}>
-            {/* שעון */}
             <div style={{
               fontSize:52, fontWeight:700, fontFamily:'monospace', letterSpacing:'0.04em',
-              color: timerRunning ? '#6366f1' : elapsed > 0 ? '#10b981' : '#94a3b8',
+              color: timer.status==='running' ? '#6366f1' : timer.status==='paused' ? '#f59e0b' : timer.elapsed > 0 ? '#10b981' : '#94a3b8',
               transition:'color .3s',
             }}>
-              {fmtElapsed(elapsed)}
+              {fmtElapsed(timer.elapsed)}
             </div>
 
-            {/* כפתורים */}
             <div style={{ display:'flex',gap:10 }}>
-              {!timerRunning && elapsed === 0 && (
-                <button onClick={startTimer} style={{ padding:'10px 28px',borderRadius:10,background:'#6366f1',color:'#fff',border:'none',fontSize:14,fontWeight:600,cursor:'pointer',boxShadow:'0 2px 8px rgba(99,102,241,0.4)' }}>
+              {timer.status === 'idle' && (
+                <button onClick={handleStart} style={{ padding:'10px 28px',borderRadius:10,background:'#6366f1',color:'#fff',border:'none',fontSize:14,fontWeight:600,cursor:'pointer',boxShadow:'0 2px 8px rgba(99,102,241,0.4)' }}>
                   ▶ התחל
                 </button>
               )}
-              {timerRunning && (
-                <button onClick={stopTimer} style={{ padding:'10px 28px',borderRadius:10,background:'#ef4444',color:'#fff',border:'none',fontSize:14,fontWeight:600,cursor:'pointer',boxShadow:'0 2px 8px rgba(239,68,68,0.3)' }}>
-                  ■ עצור
-                </button>
-              )}
-              {!timerRunning && elapsed > 0 && (
+              {timer.status === 'running' && (
                 <>
-                  <button onClick={startTimer} style={{ padding:'10px 20px',borderRadius:10,background:'#6366f1',color:'#fff',border:'none',fontSize:13,fontWeight:500,cursor:'pointer' }}>
+                  <button onClick={pause} style={{ padding:'10px 22px',borderRadius:10,background:'#f59e0b',color:'#fff',border:'none',fontSize:14,fontWeight:600,cursor:'pointer' }}>
+                    ⏸ השהה
+                  </button>
+                  <button onClick={handleStop} style={{ padding:'10px 22px',borderRadius:10,background:'#ef4444',color:'#fff',border:'none',fontSize:14,fontWeight:600,cursor:'pointer' }}>
+                    ■ עצור
+                  </button>
+                </>
+              )}
+              {timer.status === 'paused' && (
+                <>
+                  <button onClick={resume} style={{ padding:'10px 22px',borderRadius:10,background:'#6366f1',color:'#fff',border:'none',fontSize:13,fontWeight:500,cursor:'pointer' }}>
                     ▶ המשך
                   </button>
-                  <button onClick={resetTimer} style={{ padding:'10px 20px',borderRadius:10,background:'#f1f5f9',color:'#64748b',border:'1px solid #e2e8f0',fontSize:13,cursor:'pointer' }}>
+                  <button onClick={handleStop} style={{ padding:'10px 22px',borderRadius:10,background:'#ef4444',color:'#fff',border:'none',fontSize:13,fontWeight:500,cursor:'pointer' }}>
+                    ■ עצור
+                  </button>
+                  <button onClick={reset} style={{ padding:'10px 18px',borderRadius:10,background:'#f1f5f9',color:'#64748b',border:'1px solid #e2e8f0',fontSize:13,cursor:'pointer' }}>
                     ↺ אפס
                   </button>
                 </>
               )}
             </div>
 
-            {/* הודעה אחרי עצירה */}
-            {!timerRunning && elapsed > 0 && (
+            {timer.status !== 'idle' && (
+              <div style={{ fontSize:11,color:'#94a3b8' }}>
+                {timer.status==='running' ? 'הטיימר ירוץ גם אם תנווט לדף אחר' : 'טיימר מושהה'}
+              </div>
+            )}
+            {timer.status === 'idle' && timer.elapsed > 0 && (
               <div style={{ fontSize:12,color:'#10b981',background:'#f0fdf4',padding:'6px 16px',borderRadius:8,border:'1px solid #bbf7d0' }}>
                 זמן מולא בטופס אוטומטית ✓
               </div>

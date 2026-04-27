@@ -1,8 +1,9 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTimeEntries } from '../hooks/useTimeEntries';
+import { useTimer } from '../context/TimerContext';
 import { reportsApi } from '../api/reports';
 import Card    from '../components/common/Card';
 import Badge   from '../components/common/Badge';
@@ -14,15 +15,56 @@ import {
 import { tasksApi } from '../api/tasks';
 
 const fmt = m => m ? Math.floor(m/60) + ':' + String(m%60).padStart(2,'0') : '0:00';
+const fmtElapsed = s => `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 const PIE_COLORS = ['#6366f1','#8b5cf6','#3b82f6','#10b981','#f59e0b','#ef4444','#ec4899'];
 
-// ── כרטיס סטטיסטיקה ──────────────────────────────────────────
 function StatCard({ label, value, color, sub }) {
   return (
     <Card style={{ flex:1,minWidth:0 }}>
       <div style={{ fontSize:10,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.05em' }}>{label}</div>
       <div style={{ fontSize:26,fontWeight:700,color,margin:'6px 0 2px' }}>{value != null ? value : '—'}</div>
       {sub && <div style={{ fontSize:11,color:'#94a3b8' }}>{sub}</div>}
+    </Card>
+  );
+}
+
+// ── ווידג'ט טיימר פעיל ───────────────────────────────────────
+function ActiveTimerWidget({ navigate }) {
+  const { timer, pause, resume, stop } = useTimer();
+  if (timer.status === 'idle') return null;
+
+  const isRunning = timer.status === 'running';
+  const borderColor = isRunning ? '#6366f1' : '#f59e0b';
+  const clockColor  = isRunning ? '#6366f1' : '#f59e0b';
+
+  const handleStopAndReport = () => { stop(); navigate('/report'); };
+
+  return (
+    <Card style={{ marginBottom:20, border:`2px solid ${borderColor}`, background: isRunning ? '#fafafe' : '#fffbeb' }}>
+      <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap' }}>
+        <div>
+          <div style={{ fontSize:11,color:'#94a3b8',marginBottom:4 }}>
+            {isRunning ? 'טיימר פעיל' : 'טיימר מושהה'}
+          </div>
+          <div style={{ fontSize:36,fontWeight:700,fontFamily:'monospace',color:clockColor,letterSpacing:'0.04em' }}>
+            {fmtElapsed(timer.elapsed)}
+          </div>
+        </div>
+        <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
+          {isRunning ? (
+            <button onClick={pause} style={{ padding:'9px 18px',borderRadius:8,background:'#f59e0b',color:'#fff',border:'none',fontSize:13,fontWeight:600,cursor:'pointer' }}>
+              ⏸ השהה
+            </button>
+          ) : (
+            <button onClick={resume} style={{ padding:'9px 18px',borderRadius:8,background:'#6366f1',color:'#fff',border:'none',fontSize:13,fontWeight:600,cursor:'pointer' }}>
+              ▶ המשך
+            </button>
+          )}
+          <button onClick={handleStopAndReport} style={{ padding:'9px 18px',borderRadius:8,background:'#ef4444',color:'#fff',border:'none',fontSize:13,fontWeight:600,cursor:'pointer' }}>
+            ■ עצור ודווח
+          </button>
+        </div>
+      </div>
     </Card>
   );
 }
@@ -47,16 +89,13 @@ function ManagerCharts() {
 
   return (
     <>
-      {/* כרטיסי צוות */}
       <div style={{ display:'flex',gap:12,marginBottom:20 }}>
         <StatCard label="סה״כ שעות צוות"  value={totalHours + 'ש\''} color="#6366f1" />
         <StatCard label="עובדים פעילים"    value={activeUsers}         color="#10b981" />
         <StatCard label="פרויקטים פעילים"  value={projectReport.length} color="#3b82f6" />
       </div>
 
-      {/* גרפים */}
       <div style={{ display:'flex',gap:16,marginBottom:20,flexWrap:'wrap' }}>
-        {/* BarChart – שעות לפי עובד */}
         <Card style={{ flex:'1 1 340px',minWidth:0 }}>
           <div style={{ fontSize:13,fontWeight:600,color:'#1e293b',marginBottom:16 }}>שעות לפי עובד</div>
           {userReport.length === 0
@@ -68,9 +107,7 @@ function ManagerCharts() {
                   <YAxis type="category" dataKey="full_name" tick={{ fontSize:11 }} width={72} />
                   <Tooltip formatter={v => [v + ' שעות', 'שעות']} />
                   <Bar dataKey="total_hours" radius={[0,4,4,0]} isAnimationActive={false}>
-                    {userReport.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
+                    {userReport.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -78,7 +115,6 @@ function ManagerCharts() {
           }
         </Card>
 
-        {/* PieChart – שעות לפי פרויקט */}
         <Card style={{ flex:'1 1 300px',minWidth:0 }}>
           <div style={{ fontSize:13,fontWeight:600,color:'#1e293b',marginBottom:16 }}>שעות לפי פרויקט</div>
           {projectReport.length === 0
@@ -86,34 +122,18 @@ function ManagerCharts() {
             : (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie
-                    data={projectReport}
-                    dataKey="total_hours"
-                    nameKey="project_name"
-                    cx="50%"
-                    cy="45%"
-                    outerRadius={80}
-                    isAnimationActive={false}
-                    label={({ percent }) => percent > 0.05 ? `${(percent*100).toFixed(0)}%` : ''}
-                    labelLine={false}
-                  >
-                    {projectReport.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
+                  <Pie data={projectReport} dataKey="total_hours" nameKey="project_name" cx="50%" cy="45%" outerRadius={80} isAnimationActive={false}
+                    label={({ percent }) => percent > 0.05 ? `${(percent*100).toFixed(0)}%` : ''} labelLine={false}>
+                    {projectReport.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
                   <Tooltip formatter={(v, n) => [v + ' שעות', n]} />
-                  <Legend
-                    iconType="circle"
-                    iconSize={8}
-                    formatter={name => <span style={{ fontSize:11 }}>{name}</span>}
-                  />
+                  <Legend iconType="circle" iconSize={8} formatter={name => <span style={{ fontSize:11 }}>{name}</span>} />
                 </PieChart>
               </ResponsiveContainer>
             )
           }
         </Card>
 
-        {/* BarChart – עובדים לפי מספר דיווחים */}
         <Card style={{ flex:'1 1 340px',minWidth:0 }}>
           <div style={{ fontSize:13,fontWeight:600,color:'#1e293b',marginBottom:16 }}>דיווחים לפי עובד</div>
           {userReport.length === 0
@@ -125,9 +145,7 @@ function ManagerCharts() {
                   <YAxis tick={{ fontSize:10 }} />
                   <Tooltip formatter={v => [v + ' דיווחים', 'דיווחים']} />
                   <Bar dataKey="entry_count" radius={[4,4,0,0]} isAnimationActive={false}>
-                    {userReport.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[(i + 2) % PIE_COLORS.length]} />
-                    ))}
+                    {userReport.map((_, i) => <Cell key={i} fill={PIE_COLORS[(i + 2) % PIE_COLORS.length]} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -136,6 +154,39 @@ function ManagerCharts() {
         </Card>
       </div>
     </>
+  );
+}
+
+// ── חלוקה אישית לפי פרויקט (עובד) ──────────────────────────
+function MyProjectBreakdown({ entries }) {
+  const breakdown = useMemo(() => {
+    const map = {};
+    entries.forEach(e => {
+      const k = e.project_name || 'ללא פרויקט';
+      map[k] = (map[k] || 0) + (e.duration_minutes || 0);
+    });
+    return Object.entries(map)
+      .map(([name, minutes]) => ({ name, hours: +(minutes / 60).toFixed(1) }))
+      .sort((a, b) => b.hours - a.hours)
+      .slice(0, 7);
+  }, [entries]);
+
+  if (!breakdown.length) return null;
+
+  return (
+    <Card style={{ marginBottom:20 }}>
+      <div style={{ fontSize:13,fontWeight:600,color:'#1e293b',marginBottom:16 }}>שעות לפי פרויקט</div>
+      <ResponsiveContainer width="100%" height={180}>
+        <BarChart layout="vertical" data={breakdown} margin={{ left:8, right:24 }}>
+          <XAxis type="number" tick={{ fontSize:10 }} tickFormatter={v => v+'ש\''} />
+          <YAxis type="category" dataKey="name" tick={{ fontSize:11 }} width={90} />
+          <Tooltip formatter={v => [v + ' שעות', 'שעות']} />
+          <Bar dataKey="hours" radius={[0,4,4,0]} isAnimationActive={false}>
+            {breakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </Card>
   );
 }
 
@@ -198,6 +249,9 @@ export default function DashboardPage() {
         </p>
       </div>
 
+      {/* טיימר פעיל – עובד בלבד */}
+      {user?.role === 'employee' && <ActiveTimerWidget navigate={navigate} />}
+
       {/* כרטיסי סיכום אישי */}
       <div style={{ display:'flex',gap:12,marginBottom:20 }}>
         {[
@@ -212,6 +266,9 @@ export default function DashboardPage() {
 
       {/* המשימות שלי – עובד בלבד */}
       {user?.role === 'employee' && <MyTasks userId={user.id} />}
+
+      {/* חלוקה לפי פרויקט – עובד בלבד */}
+      {user?.role === 'employee' && !loading && <MyProjectBreakdown entries={entries} />}
 
       {/* גרפי מנהל / אדמין */}
       {isManager && (

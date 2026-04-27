@@ -59,7 +59,7 @@ router.patch('/:id/submit', authenticate, async (req, res, next) => {
 router.patch('/:id/approve', authenticate, requireRole('manager','admin'), async (req, res, next) => {
   try {
     const { rows } = await pool.query(
-      "UPDATE time_entries SET status='approved',approved_by=$1,approved_at=NOW(),updated_at=NOW() WHERE id=$2 AND status='submitted' RETURNING *",
+      "UPDATE time_entries SET status='approved',approved_by=$1,approved_at=NOW(),updated_at=NOW() WHERE id=$2 AND status IN ('draft','submitted') RETURNING *",
       [req.user.id, req.params.id]
     );
     if (!rows.length) return res.status(400).json({ error: 'Not found or not submitted' });
@@ -69,11 +69,26 @@ router.patch('/:id/approve', authenticate, requireRole('manager','admin'), async
 
 router.patch('/:id/reject', authenticate, requireRole('manager','admin'), async (req, res, next) => {
   try {
+    const infoRes = await pool.query(
+      'SELECT te.date, te.user_id, p.project_name FROM time_entries te LEFT JOIN projects p ON p.id=te.project_id WHERE te.id=$1',
+      [req.params.id]
+    );
     const { rows } = await pool.query(
-      "UPDATE time_entries SET status='rejected',rejection_reason=$1,updated_at=NOW() WHERE id=$2 AND status='submitted' RETURNING *",
+      "UPDATE time_entries SET status='rejected',rejection_reason=$1,updated_at=NOW() WHERE id=$2 AND status IN ('draft','submitted') RETURNING *",
       [req.body.reason||null, req.params.id]
     );
-    if (!rows.length) return res.status(400).json({ error: 'Not found or not submitted' });
+    if (!rows.length) return res.status(400).json({ error: 'Not found or not rejectable' });
+
+    if (infoRes.rows.length) {
+      const e = infoRes.rows[0];
+      const reason = req.body.reason ? ` סיבה: ${req.body.reason}.` : '';
+      const msg = `הדיווח שלך מתאריך ${e.date}${e.project_name ? ' לפרויקט ' + e.project_name : ''} נדחה.${reason} נא לתקן את ההגשה או לפנות למנהל.`;
+      await pool.query(
+        'INSERT INTO notifications (user_id, message, link) VALUES ($1,$2,$3)',
+        [e.user_id, msg, '/my-entries']
+      );
+    }
+
     res.json(rows[0]);
   } catch (err) { next(err); }
 });

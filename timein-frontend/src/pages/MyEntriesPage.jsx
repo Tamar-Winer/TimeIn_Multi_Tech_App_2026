@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTimeEntries } from '../hooks/useTimeEntries';
 import { useProjects }    from '../hooks/useProjects';
 import { useToast }       from '../context/ToastContext';
+import { useAuth }        from '../context/AuthContext';
 import Card    from '../components/common/Card';
 import Badge   from '../components/common/Badge';
 import Spinner from '../components/common/Spinner';
@@ -11,9 +12,11 @@ const fmt = m => Math.floor(m/60) + ':' + String(m%60).padStart(2,'0');
 export default function MyEntriesPage() {
   const navigate   = useNavigate();
   const { addToast } = useToast();
+  const { user }   = useAuth();
   const { projects } = useProjects();
   const [f, setF] = useState({ projectId:'', status:'', date:'' });
-  const { entries, loading, submit, remove } = useTimeEntries(Object.fromEntries(Object.entries(f).filter(([,v])=>v)));
+  const filters = { userId: user?.id, ...Object.fromEntries(Object.entries(f).filter(([,v])=>v)) };
+  const { entries, loading, submit, remove } = useTimeEntries(filters);
   const sel = { border:'1px solid #e2e8f0',borderRadius:8,padding:'7px 10px',fontSize:12,background:'#fff' };
   return (
     <div dir="rtl" style={{ fontFamily:'system-ui,sans-serif' }}>
@@ -45,6 +48,7 @@ export default function MyEntriesPage() {
                 <button onClick={() => { if(window.confirm('למחוק?')) remove(e.id); }} style={{ padding:'4px 8px',borderRadius:6,border:'none',background:'#fee2e2',color:'#dc2626',fontSize:11,cursor:'pointer' }}>✕</button>
               </>}
               {e.status==='rejected' && <button onClick={() => navigate('/report/'+e.id)} style={{ padding:'4px 10px',borderRadius:6,border:'1px solid #fca5a5',color:'#dc2626',background:'#fff',fontSize:11,cursor:'pointer' }}>תקן</button>}
+              <button onClick={() => navigate('/report', { state: { copyFrom: e } })} style={{ padding:'4px 8px',borderRadius:6,border:'1px solid #e2e8f0',background:'#fff',fontSize:11,cursor:'pointer' }} title="העתק דיווח">📋</button>
             </div>
           </div>
         ))}

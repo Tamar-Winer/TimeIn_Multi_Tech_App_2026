@@ -31,7 +31,7 @@ export default function ManagementPage() {
   // ── דוחות ───────────────────────────────────────────────────
   const { data, loading: rLoading, fetch: fetchReport } = useReports();
   const [rType, setRType] = useState('byUser');
-  const [f, setF]         = useState({ status:'', date:'', userId:'', projectId:'' });
+  const [f, setF]         = useState({ status:'', dateFrom:'', dateTo:'', userId:'', projectId:'' });
   const { entries, loading, approve, reject } = useTimeEntries(
     Object.fromEntries(Object.entries(f).filter(([, v]) => v))
   );
@@ -138,8 +138,10 @@ export default function ManagementPage() {
               <option value="approved">אושרו</option>
               <option value="rejected">נדחו</option>
             </select>
-            <input type="date" value={f.date} onChange={e=>setF(p=>({...p,date:e.target.value}))} style={sel}/>
-            {(f.userId||f.projectId||f.status||f.date) && <button onClick={()=>setF({status:'',date:'',userId:'',projectId:''})} style={{ padding:'7px 12px',borderRadius:8,border:'1px solid #e2e8f0',background:'#fff',fontSize:12,cursor:'pointer' }}>נקה</button>}
+            <input type="date" value={f.dateFrom} onChange={e=>setF(p=>({...p,dateFrom:e.target.value}))} style={sel} title="מתאריך"/>
+            <span style={{ fontSize:12,color:'#94a3b8',alignSelf:'center' }}>עד</span>
+            <input type="date" value={f.dateTo} onChange={e=>setF(p=>({...p,dateTo:e.target.value}))} style={sel} title="עד תאריך"/>
+            {(f.userId||f.projectId||f.status||f.dateFrom||f.dateTo) && <button onClick={()=>setF({status:'',dateFrom:'',dateTo:'',userId:'',projectId:''})} style={{ padding:'7px 12px',borderRadius:8,border:'1px solid #e2e8f0',background:'#fff',fontSize:12,cursor:'pointer' }}>נקה</button>}
           </div>
           {loading && <Spinner />}
           {entries.map(e => (
@@ -151,7 +153,7 @@ export default function ManagementPage() {
               </div>
               <span style={{ fontWeight:600,color:'#6366f1' }}>{fmt(e.duration_minutes)}</span>
               <Badge status={e.status}/>
-              {e.status === 'submitted' && (
+              {(e.status === 'submitted' || e.status === 'draft') && (
                 <div style={{ display:'flex',gap:5 }}>
                   <button onClick={() => approve(e.id).catch(err=>addToast(err.message,'error'))} style={{ padding:'4px 10px',borderRadius:6,background:'#d1fae5',color:'#065f46',border:'none',fontSize:11,cursor:'pointer',fontWeight:500 }}>אשר</button>
                   <button onClick={() => handleReject(e.id)} style={{ padding:'4px 10px',borderRadius:6,background:'#fee2e2',color:'#991b1b',border:'none',fontSize:11,cursor:'pointer',fontWeight:500 }}>דחה</button>

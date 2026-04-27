@@ -2,6 +2,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider }         from './context/ToastContext';
+import { TimerProvider }         from './context/TimerContext';
 import Sidebar           from './components/layout/Sidebar';
 import Spinner           from './components/common/Spinner';
 import LoginPage         from './pages/LoginPage';
@@ -45,10 +46,12 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/*"     element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
-          </Routes>
+          <TimerProvider>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/*"     element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+            </Routes>
+          </TimerProvider>
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
