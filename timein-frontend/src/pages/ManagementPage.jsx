@@ -172,13 +172,13 @@ export default function ManagementPage() {
             ))}
           </div>
           {rLoading && <Spinner />}
-          {data && rType==='byUser' && (
+          {Array.isArray(data) && rType==='byUser' && (
             <table style={{ width:'100%',fontSize:12,borderCollapse:'collapse' }}>
               <thead><tr style={{ color:'#94a3b8' }}>{['עובד','צוות','שעות','דיווחים','פרויקטים'].map(h=><th key={h} style={{ textAlign:'right',padding:'6px 0',fontWeight:400 }}>{h}</th>)}</tr></thead>
               <tbody>{data.map(r=><tr key={r.id} style={{ borderTop:'1px solid #f1f5f9' }}><td style={{ padding:'8px 0',fontWeight:500 }}>{r.full_name}</td><td style={{ padding:'8px 0',color:'#64748b' }}>{r.team}</td><td style={{ padding:'8px 0',color:'#6366f1',fontWeight:600 }}>{r.total_hours}ש'</td><td style={{ padding:'8px 0',color:'#64748b' }}>{r.entry_count}</td><td style={{ padding:'8px 0',color:'#64748b' }}>{r.project_count}</td></tr>)}</tbody>
             </table>
           )}
-          {data && rType==='byProject' && (
+          {Array.isArray(data) && rType==='byProject' && (
             <table style={{ width:'100%',fontSize:12,borderCollapse:'collapse' }}>
               <thead><tr style={{ color:'#94a3b8' }}>{['פרויקט','שעות','עובדים','דיווחים'].map(h=><th key={h} style={{ textAlign:'right',padding:'6px 0',fontWeight:400 }}>{h}</th>)}</tr></thead>
               <tbody>{data.map(r=><tr key={r.project_id} style={{ borderTop:'1px solid #f1f5f9' }}><td style={{ padding:'8px 0',fontWeight:500 }}>{r.project_name}</td><td style={{ padding:'8px 0',color:'#6366f1',fontWeight:600 }}>{r.total_hours}ש'</td><td style={{ padding:'8px 0',color:'#64748b' }}>{r.user_count}</td><td style={{ padding:'8px 0',color:'#64748b' }}>{r.entry_count}</td></tr>)}</tbody>
