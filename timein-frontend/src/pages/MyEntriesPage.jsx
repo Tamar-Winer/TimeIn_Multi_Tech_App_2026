@@ -40,7 +40,7 @@ export default function MyEntriesPage() {
             <span style={{ color:'#94a3b8',minWidth:80 }}>{e.date}</span>
             <div style={{ flex:1 }}><div style={{ fontWeight:500,color:'#1e293b' }}>{e.project_name}</div><div style={{ color:'#64748b' }}>{e.description}</div></div>
             <span style={{ fontWeight:600,color:'#6366f1',minWidth:48 }}>{fmt(e.duration_minutes)}</span>
-            <Badge status={e.status}/>
+            <Badge status={e.status} resubmitted={!!e.rejection_reason}/>
             <div style={{ display:'flex',gap:5 }}>
               {e.status==='draft' && <>
                 <button onClick={() => submit(e.id).catch(err=>addToast(err.message,'error'))} style={{ padding:'4px 10px',borderRadius:6,border:'1px solid #e2e8f0',background:'#fff',fontSize:11,cursor:'pointer' }}>הגש</button>

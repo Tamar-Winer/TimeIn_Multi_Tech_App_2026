@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 
 const TimerContext = createContext(null);
 const STORAGE_KEY = 'timein_timer';
-const DEFAULT = { status: 'idle', elapsed: 0, startedAt: null, projectId: '', taskId: '', lastResult: null };
+const DEFAULT = { status: 'idle', elapsed: 0, startedAt: null, projectId: '', taskId: '', projectName: '', taskName: '', lastResult: null };
 
 export function TimerProvider({ children }) {
   const [timer, setTimer] = useState(() => {
@@ -36,8 +36,8 @@ export function TimerProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(timer));
   }, [timer]);
 
-  const start = useCallback((projectId = '', taskId = '') => {
-    setTimer({ ...DEFAULT, status: 'running', startedAt: new Date().toISOString(), projectId, taskId });
+  const start = useCallback((projectId = '', taskId = '', projectName = '', taskName = '') => {
+    setTimer({ ...DEFAULT, status: 'running', startedAt: new Date().toISOString(), projectId, taskId, projectName, taskName });
     startTick();
   }, [startTick]);
 
@@ -66,6 +66,8 @@ export function TimerProvider({ children }) {
           durationMinutes: String(durMin),
           projectId: p.projectId,
           taskId: p.taskId,
+          projectName: p.projectName,
+          taskName: p.taskName,
         },
       };
     });

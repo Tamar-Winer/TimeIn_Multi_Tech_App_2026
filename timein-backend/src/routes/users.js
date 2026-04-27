@@ -1,7 +1,24 @@
 
 const router = require('express').Router();
+const bcrypt = require('bcryptjs');
 const pool   = require('../config/db');
 const { authenticate, requireRole } = require('../middleware/auth');
+
+router.post('/', authenticate, requireRole('admin'), async (req, res, next) => {
+  const { fullName, email, password, role = 'employee', team } = req.body;
+  if (!fullName || !email || !password) return res.status(400).json({ error: 'שם, מייל וסיסמה הם שדות חובה' });
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    const { rows } = await pool.query(
+      'INSERT INTO users (full_name,email,password_hash,role,team) VALUES ($1,$2,$3,$4,$5) RETURNING id,full_name,email,role,team,is_active',
+      [fullName, email, hash, role, team || null]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'כתובת המייל כבר קיימת במערכת' });
+    next(err);
+  }
+});
 
 router.get('/', authenticate, requireRole('manager','admin'), async (req, res, next) => {
   try {

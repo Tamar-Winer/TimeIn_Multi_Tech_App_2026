@@ -102,13 +102,55 @@ router.patch('/:id', authenticate, async (req, res, next) => {
     dur = (eh*60+em) - (sh*60+sm);
   }
   try {
+    // שמור את הסטטוס הנוכחי לפני העדכון
+    const prevRes = await pool.query(
+      'SELECT status, user_id, project_id FROM time_entries WHERE id=$1', [req.params.id]
+    );
+    if (!prevRes.rows.length) return res.status(404).json({ error: 'Not found' });
+    const wasRejected = prevRes.rows[0].status === 'rejected';
+    const entryUserId = prevRes.rows[0].user_id;
+    const entryProjectId = prevRes.rows[0].project_id;
+
     const { rows } = await pool.query(
-      'UPDATE time_entries SET project_id=COALESCE($1,project_id),task_id=COALESCE($2,task_id),date=COALESCE($3,date),start_time=COALESCE($4,start_time),end_time=COALESCE($5,end_time),duration_minutes=COALESCE($6,duration_minutes),work_type=COALESCE($7,work_type),description=COALESCE($8,description),related_commit_ids=COALESCE($9,related_commit_ids),updated_at=NOW() WHERE id=$10 RETURNING *',
+      `UPDATE time_entries
+       SET project_id=COALESCE($1,project_id),
+           task_id=COALESCE($2,task_id),
+           date=COALESCE($3,date),
+           start_time=COALESCE($4,start_time),
+           end_time=COALESCE($5,end_time),
+           duration_minutes=COALESCE($6,duration_minutes),
+           work_type=COALESCE($7,work_type),
+           description=COALESCE($8,description),
+           related_commit_ids=COALESCE($9,related_commit_ids),
+           status=CASE WHEN status='rejected' THEN 'submitted' ELSE status END,
+           updated_at=NOW()
+       WHERE id=$10 RETURNING *`,
       [projectId, taskId, date, startTime, endTime, dur, workType, description, relatedCommitIds, req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
+
+    // שלח notification למנהלים כשעובד מתקן דיווח שנדחה
+    if (wasRejected) {
+      const mgrsRes = await pool.query(
+        'SELECT id FROM users WHERE role IN (\'manager\',\'admin\') AND is_active=TRUE AND id!=$1',
+        [entryUserId]
+      );
+      const projRes = await pool.query('SELECT project_name FROM projects WHERE id=$1', [entryProjectId]);
+      const projName = projRes.rows[0]?.project_name || '';
+      const entryDate = rows[0].date instanceof Date ? rows[0].date.toISOString().slice(0,10) : String(rows[0].date).slice(0,10);
+      const msg = `עובד תיקן דיווח שנדחה — תאריך ${entryDate}${projName ? ', פרויקט ' + projName : ''}. הדיווח הוחזר לבדיקה נוספת.`;
+      if (mgrsRes.rows.length) {
+        const vals = mgrsRes.rows.map((_, i) => `($${i*3+1},$${i*3+2},$${i*3+3})`).join(',');
+        const params = mgrsRes.rows.flatMap(u => [u.id, msg, '/management']);
+        await pool.query(`INSERT INTO notifications (user_id,message,link) VALUES ${vals}`, params);
+      }
+    }
+
     res.json(rows[0]);
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (err.message.includes('overlap')) return res.status(409).json({ error: 'חפיפה בין דיווחים — שנה את שעות העבודה' });
+    next(err);
+  }
 });
 
 router.delete('/:id', authenticate, async (req, res, next) => {

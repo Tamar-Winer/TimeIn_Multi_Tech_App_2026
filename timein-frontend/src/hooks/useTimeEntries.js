@@ -16,7 +16,7 @@ export function useTimeEntries(filters={}) {
   }, [key]);
   useEffect(() => { fetch(); }, [fetch]);
   const create  = async (data)      => { const e = await timeEntriesApi.create(data);         setEntries(p => [e,...p]);                    addToast('נשמר כטיוטה');           return e; };
-  const update  = async (id, data)  => { const e = await timeEntriesApi.update(id, data);     setEntries(p => p.map(x => x.id===id?e:x));  addToast('עודכן בהצלחה');          return e; };
+  const update  = async (id, data)  => { const e = await timeEntriesApi.update(id, data);     setEntries(p => p.map(x => x.id===id?e:x));  addToast(e.status==='submitted'&&entries.find(x=>x.id===id)?.status==='rejected' ? 'הדיווח תוקן ונשלח לבדיקה נוספת' : 'עודכן בהצלחה'); return e; };
   const submit  = async (id)        => { const e = await timeEntriesApi.submit(id);            setEntries(p => p.map(x => x.id===id?e:x));  addToast('הוגש לאישור');                     };
   const approve = async (id)        => { const e = await timeEntriesApi.approve(id);           setEntries(p => p.map(x => x.id===id?e:x));  addToast('אושר');                            };
   const reject  = async (id,reason) => { const e = await timeEntriesApi.reject(id, reason);   setEntries(p => p.map(x => x.id===id?e:x));  addToast('הבקשה נשלחה לערעור — העובד יקבל התראה','warning');          };

@@ -49,6 +49,11 @@ function ActiveTimerWidget({ navigate }) {
           <div style={{ fontSize:36,fontWeight:700,fontFamily:'monospace',color:clockColor,letterSpacing:'0.04em' }}>
             {fmtElapsed(timer.elapsed)}
           </div>
+          {timer.projectName && (
+            <div style={{ fontSize:12,color:'#64748b',marginTop:4 }}>
+              {timer.projectName}{timer.taskName ? ` · ${timer.taskName}` : ''}
+            </div>
+          )}
         </div>
         <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
           {isRunning ? (
@@ -290,7 +295,7 @@ export default function DashboardPage() {
             <span style={{ flex:1,color:'#334155',fontWeight:500 }}>{e.project_name}</span>
             <span style={{ color:'#64748b' }}>{e.description}</span>
             <span style={{ fontWeight:600,color:'#6366f1' }}>{fmt(e.duration_minutes)}</span>
-            <Badge status={e.status} />
+            <Badge status={e.status} resubmitted={!!e.rejection_reason}/>
           </div>
         ))}
         {!loading && !entries.length && <p style={{ color:'#94a3b8',textAlign:'center',padding:20 }}>אין דיווחים עדיין</p>}

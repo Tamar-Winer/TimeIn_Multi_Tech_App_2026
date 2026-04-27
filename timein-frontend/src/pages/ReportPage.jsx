@@ -117,7 +117,12 @@ export default function ReportPage() {
     finally { setSaving(false); }
   };
 
-  const handleStart = () => start(form.projectId, form.taskId);
+  const handleStart = () => {
+    if (!form.projectId) { addToast('יש לבחור פרויקט לפני הפעלת הטיימר', 'error'); return; }
+    const proj = projects.find(p => String(p.id) === String(form.projectId));
+    const task = tasks.find(t => String(t.id) === String(form.taskId));
+    start(form.projectId, form.taskId, proj?.project_name || '', task?.task_name || '');
+  };
   const handleStop  = () => stop();
 
   return (
@@ -130,10 +135,40 @@ export default function ReportPage() {
       {!id && (
         <Card style={{ maxWidth:560,marginBottom:16 }}>
           <div style={{ fontSize:13,fontWeight:600,color:'#1e293b',marginBottom:16 }}>טיימר</div>
+
+          {/* בחירת פרויקט/משימה – מוצג רק כשהטיימר לא פועל */}
+          {timer.status === 'idle' && (
+            <div style={{ display:'flex',flexDirection:'column',gap:10,marginBottom:16 }}>
+              <div>
+                <label style={lbl}>פרויקט *</label>
+                <select value={form.projectId} onChange={e => setForm(p => ({ ...p, projectId: e.target.value, taskId: '' }))} style={inp}>
+                  <option value="">בחר פרויקט</option>
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.project_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>משימה</label>
+                <select value={form.taskId} onChange={set('taskId')} style={inp} disabled={!form.projectId}>
+                  <option value="">בחר משימה</option>
+                  {tasks.map(t => <option key={t.id} value={t.id}>{t.task_name}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* פרויקט פעיל – מוצג רק כשהטיימר פועל */}
+          {timer.status !== 'idle' && (
+            <div style={{ marginBottom:14,padding:'8px 12px',background:'#f8fafc',borderRadius:8,border:'1px solid #e2e8f0' }}>
+              <div style={{ fontSize:11,color:'#94a3b8',marginBottom:2 }}>פרויקט</div>
+              <div style={{ fontSize:13,fontWeight:600,color:'#1e293b' }}>{timer.projectName || '—'}</div>
+              {timer.taskName && <div style={{ fontSize:12,color:'#64748b',marginTop:2 }}>{timer.taskName}</div>}
+            </div>
+          )}
+
           <div style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:16 }}>
             <div style={{
               fontSize:52, fontWeight:700, fontFamily:'monospace', letterSpacing:'0.04em',
-              color: timer.status==='running' ? '#6366f1' : timer.status==='paused' ? '#f59e0b' : timer.elapsed > 0 ? '#10b981' : '#94a3b8',
+              color: timer.status==='running' ? '#6366f1' : timer.status==='paused' ? '#f59e0b' : '#94a3b8',
               transition:'color .3s',
             }}>
               {fmtElapsed(timer.elapsed)}
@@ -141,7 +176,11 @@ export default function ReportPage() {
 
             <div style={{ display:'flex',gap:10 }}>
               {timer.status === 'idle' && (
-                <button onClick={handleStart} style={{ padding:'10px 28px',borderRadius:10,background:'#6366f1',color:'#fff',border:'none',fontSize:14,fontWeight:600,cursor:'pointer',boxShadow:'0 2px 8px rgba(99,102,241,0.4)' }}>
+                <button
+                  onClick={handleStart}
+                  disabled={!form.projectId}
+                  style={{ padding:'10px 28px',borderRadius:10,background: form.projectId ? '#6366f1' : '#cbd5e1',color:'#fff',border:'none',fontSize:14,fontWeight:600,cursor: form.projectId ? 'pointer' : 'not-allowed',boxShadow: form.projectId ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',transition:'background .2s' }}
+                >
                   ▶ התחל
                 </button>
               )}
@@ -151,7 +190,7 @@ export default function ReportPage() {
                     ⏸ השהה
                   </button>
                   <button onClick={handleStop} style={{ padding:'10px 22px',borderRadius:10,background:'#ef4444',color:'#fff',border:'none',fontSize:14,fontWeight:600,cursor:'pointer' }}>
-                    ■ עצור
+                    ■ עצור ודווח
                   </button>
                 </>
               )}
@@ -161,7 +200,7 @@ export default function ReportPage() {
                     ▶ המשך
                   </button>
                   <button onClick={handleStop} style={{ padding:'10px 22px',borderRadius:10,background:'#ef4444',color:'#fff',border:'none',fontSize:13,fontWeight:500,cursor:'pointer' }}>
-                    ■ עצור
+                    ■ עצור ודווח
                   </button>
                   <button onClick={reset} style={{ padding:'10px 18px',borderRadius:10,background:'#f1f5f9',color:'#64748b',border:'1px solid #e2e8f0',fontSize:13,cursor:'pointer' }}>
                     ↺ אפס
@@ -172,12 +211,7 @@ export default function ReportPage() {
 
             {timer.status !== 'idle' && (
               <div style={{ fontSize:11,color:'#94a3b8' }}>
-                {timer.status==='running' ? 'הטיימר ירוץ גם אם תנווט לדף אחר' : 'טיימר מושהה'}
-              </div>
-            )}
-            {timer.status === 'idle' && timer.elapsed > 0 && (
-              <div style={{ fontSize:12,color:'#10b981',background:'#f0fdf4',padding:'6px 16px',borderRadius:8,border:'1px solid #bbf7d0' }}>
-                זמן מולא בטופס אוטומטית ✓
+                {timer.status==='running' ? 'הטיימר ירוץ גם אם תנווט לדף אחר' : 'טיימר מושהה — לחץ המשך להמשך מדידה'}
               </div>
             )}
           </div>

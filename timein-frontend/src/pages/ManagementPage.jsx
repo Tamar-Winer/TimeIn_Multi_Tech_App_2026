@@ -52,7 +52,7 @@ export default function ManagementPage() {
   const [savingId, setSavingId]     = useState(null);
   const [roleMap, setRoleMap]       = useState({});   // { userId: newRole }
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newUser, setNewUser]       = useState({ fullName:'', email:'', password:'', role:'manager' });
+  const [newUser, setNewUser]       = useState({ fullName:'', email:'', password:'', role:'employee', team:'' });
   const [addSaving, setAddSaving]   = useState(false);
 
   const loadUsers = async () => {
@@ -79,18 +79,21 @@ export default function ManagementPage() {
     if (!newUser.fullName || !newUser.email || !newUser.password) { addToast('נא למלא את כל השדות', 'error'); return; }
     setAddSaving(true);
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || '/api'}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + localStorage.getItem('timein_token') },
-        body: JSON.stringify({ fullName: newUser.fullName, email: newUser.email, password: newUser.password, role: newUser.role }),
-      });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'שגיאה'); }
+      await usersApi.create({ fullName: newUser.fullName, email: newUser.email, password: newUser.password, role: newUser.role, team: newUser.team || undefined });
       addToast(`משתמש "${newUser.fullName}" נוצר בהצלחה`, 'success');
-      setNewUser({ fullName:'', email:'', password:'', role:'manager' });
+      setNewUser({ fullName:'', email:'', password:'', role:'employee', team:'' });
       setShowAddForm(false);
       loadUsers();
     } catch (err) { addToast(err.message, 'error'); }
     finally { setAddSaving(false); }
+  };
+
+  const handleToggleActive = async (u) => {
+    try {
+      await usersApi.update(u.id, { isActive: !u.is_active });
+      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, is_active: !u.is_active } : x));
+      addToast(u.is_active ? 'משתמש הושבת' : 'משתמש הופעל מחדש', 'success');
+    } catch (err) { addToast(err.message, 'error'); }
   };
 
   const handleReject = async (id) => {
@@ -152,7 +155,7 @@ export default function ManagementPage() {
                 <div style={{ color:'#64748b' }}>{e.project_name}</div>
               </div>
               <span style={{ fontWeight:600,color:'#6366f1' }}>{fmt(e.duration_minutes)}</span>
-              <Badge status={e.status}/>
+              <Badge status={e.status} resubmitted={!!e.rejection_reason}/>
               {(e.status === 'submitted' || e.status === 'draft') && (
                 <div style={{ display:'flex',gap:5 }}>
                   <button onClick={() => approve(e.id).catch(err=>addToast(err.message,'error'))} style={{ padding:'4px 10px',borderRadius:6,background:'#d1fae5',color:'#065f46',border:'none',fontSize:11,cursor:'pointer',fontWeight:500 }}>אשר</button>
@@ -215,7 +218,7 @@ export default function ManagementPage() {
           <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12 }}>
             <span style={{ fontSize:13,color:'#64748b' }}>{users.length} משתמשים רשומים</span>
             <button onClick={() => setShowAddForm(v=>!v)} style={{ padding:'8px 16px',borderRadius:8,background:'#6366f1',color:'#fff',border:'none',fontSize:13,fontWeight:500,cursor:'pointer' }}>
-              {showAddForm ? 'ביטול' : '+ הוסף מנהל'}
+              {showAddForm ? 'ביטול' : '+ הוסף משתמש'}
             </button>
           </div>
 
@@ -224,13 +227,14 @@ export default function ManagementPage() {
             <Card style={{ marginBottom:16,border:'2px solid #e0e7ff' }}>
               <div style={{ fontSize:13,fontWeight:600,color:'#1e293b',marginBottom:14 }}>הוספת משתמש חדש</div>
               <form onSubmit={handleAddUser} style={{ display:'flex',flexDirection:'column',gap:12 }}>
-                <div style={{ display:'flex',gap:12 }}>
-                  <div style={{ flex:1 }}><label style={lbl}>שם מלא</label><input value={newUser.fullName} onChange={e=>setNewUser(p=>({...p,fullName:e.target.value}))} style={inp} placeholder="ישראל ישראלי" /></div>
-                  <div style={{ flex:1 }}><label style={lbl}>אימייל</label><input type="email" value={newUser.email} onChange={e=>setNewUser(p=>({...p,email:e.target.value}))} style={inp} placeholder="email@example.com" /></div>
+                <div style={{ display:'flex',gap:12,flexWrap:'wrap' }}>
+                  <div style={{ flex:'1 1 180px' }}><label style={lbl}>שם מלא *</label><input value={newUser.fullName} onChange={e=>setNewUser(p=>({...p,fullName:e.target.value}))} style={inp} placeholder="ישראל ישראלי" /></div>
+                  <div style={{ flex:'1 1 180px' }}><label style={lbl}>אימייל *</label><input type="email" value={newUser.email} onChange={e=>setNewUser(p=>({...p,email:e.target.value}))} style={inp} placeholder="email@example.com" /></div>
                 </div>
-                <div style={{ display:'flex',gap:12 }}>
-                  <div style={{ flex:1 }}><label style={lbl}>סיסמה</label><input type="password" value={newUser.password} onChange={e=>setNewUser(p=>({...p,password:e.target.value}))} style={inp} placeholder="••••••••" /></div>
-                  <div style={{ flex:1 }}><label style={lbl}>תפקיד</label>
+                <div style={{ display:'flex',gap:12,flexWrap:'wrap' }}>
+                  <div style={{ flex:'1 1 180px' }}><label style={lbl}>סיסמה *</label><input type="password" value={newUser.password} onChange={e=>setNewUser(p=>({...p,password:e.target.value}))} style={inp} placeholder="••••••••" /></div>
+                  <div style={{ flex:'1 1 120px' }}><label style={lbl}>צוות</label><input value={newUser.team} onChange={e=>setNewUser(p=>({...p,team:e.target.value}))} style={inp} placeholder="פיתוח" /></div>
+                  <div style={{ flex:'1 1 120px' }}><label style={lbl}>תפקיד</label>
                     <select value={newUser.role} onChange={e=>setNewUser(p=>({...p,role:e.target.value}))} style={inp}>
                       <option value="employee">עובד</option>
                       <option value="manager">מנהל</option>
@@ -249,16 +253,16 @@ export default function ManagementPage() {
           <Card>
             {usersLoading && <Spinner />}
             {!usersLoading && users.map(u => (
-              <div key={u.id} style={{ display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:'1px solid #f1f5f9' }}>
+              <div key={u.id} style={{ display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:'1px solid #f1f5f9',opacity:u.is_active?1:0.5 }}>
                 <div style={{ width:36,height:36,borderRadius:'50%',background:'#e0e7ff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:600,color:'#6366f1',flexShrink:0 }}>
                   {u.full_name?.charAt(0)}
                 </div>
-                <div style={{ flex:1 }}>
+                <div style={{ flex:1,minWidth:0 }}>
                   <div style={{ fontSize:13,fontWeight:500,color:'#1e293b' }}>{u.full_name}</div>
                   <div style={{ fontSize:11,color:'#94a3b8' }}>{u.email}</div>
+                  {u.team && <div style={{ fontSize:11,color:'#64748b',marginTop:1 }}>{u.team}</div>}
                 </div>
-                <div style={{ fontSize:11,color:'#64748b' }}>{u.team || '—'}</div>
-                <div style={{ display:'flex',alignItems:'center',gap:8 }}>
+                <div style={{ display:'flex',alignItems:'center',gap:8,flexShrink:0 }}>
                   <select
                     value={roleMap[u.id] || u.role}
                     onChange={e => setRoleMap(prev => ({...prev, [u.id]: e.target.value}))}
@@ -269,16 +273,16 @@ export default function ManagementPage() {
                     <option value="admin">אדמין</option>
                   </select>
                   {roleMap[u.id] !== u.role && (
-                    <button
-                      onClick={() => handleRoleChange(u.id)}
-                      disabled={savingId === u.id}
-                      style={{ padding:'5px 12px',borderRadius:6,background:'#6366f1',color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:500,opacity:savingId===u.id?0.7:1 }}
-                    >
-                      {savingId === u.id ? '...' : 'שמור'}
+                    <button onClick={() => handleRoleChange(u.id)} disabled={savingId===u.id}
+                      style={{ padding:'5px 12px',borderRadius:6,background:'#6366f1',color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:500,opacity:savingId===u.id?0.7:1 }}>
+                      {savingId===u.id ? '...' : 'שמור'}
                     </button>
                   )}
+                  <button onClick={() => handleToggleActive(u)}
+                    style={{ padding:'5px 10px',borderRadius:6,border:'1px solid #e2e8f0',background:'#fff',fontSize:11,cursor:'pointer',color:u.is_active?'#dc2626':'#16a34a',fontWeight:500 }}>
+                    {u.is_active ? 'השבת' : 'הפעל'}
+                  </button>
                 </div>
-                <div style={{ width:8,height:8,borderRadius:'50%',background:u.is_active?'#22c55e':'#e2e8f0',flexShrink:0 }} title={u.is_active?'פעיל':'לא פעיל'} />
               </div>
             ))}
           </Card>
