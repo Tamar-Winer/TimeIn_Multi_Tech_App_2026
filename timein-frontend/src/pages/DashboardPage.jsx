@@ -4,32 +4,186 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTimeEntries } from '../hooks/useTimeEntries';
 import { reportsApi } from '../api/reports';
-import Card from '../components/common/Card';
-import Badge from '../components/common/Badge';
+import Card    from '../components/common/Card';
+import Badge   from '../components/common/Badge';
 import Spinner from '../components/common/Spinner';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from 'recharts';
+
 const fmt = m => m ? Math.floor(m/60) + ':' + String(m%60).padStart(2,'0') : '0:00';
+const PIE_COLORS = ['#6366f1','#8b5cf6','#3b82f6','#10b981','#f59e0b','#ef4444','#ec4899'];
+
+// ── כרטיס סטטיסטיקה ──────────────────────────────────────────
+function StatCard({ label, value, color, sub }) {
+  return (
+    <Card style={{ flex:1,minWidth:0 }}>
+      <div style={{ fontSize:10,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.05em' }}>{label}</div>
+      <div style={{ fontSize:26,fontWeight:700,color,margin:'6px 0 2px' }}>{value != null ? value : '—'}</div>
+      {sub && <div style={{ fontSize:11,color:'#94a3b8' }}>{sub}</div>}
+    </Card>
+  );
+}
+
+// ── גרפי מנהל ────────────────────────────────────────────────
+function ManagerCharts() {
+  const [userReport,    setUR] = useState([]);
+  const [projectReport, setPR] = useState([]);
+  const [loading,    setLoad]  = useState(true);
+
+  useEffect(() => {
+    Promise.all([reportsApi.byUser(), reportsApi.byProject()])
+      .then(([u, p]) => { setUR(u.slice(0,7)); setPR(p.slice(0,7)); })
+      .catch(() => {})
+      .finally(() => setLoad(false));
+  }, []);
+
+  const totalHours  = userReport.reduce((s, r) => s + Number(r.total_hours || 0), 0).toFixed(1);
+  const activeUsers = userReport.filter(r => r.entry_count > 0).length;
+
+  if (loading) return <Spinner />;
+
+  return (
+    <>
+      {/* כרטיסי צוות */}
+      <div style={{ display:'flex',gap:12,marginBottom:20 }}>
+        <StatCard label="סה״כ שעות צוות"  value={totalHours + 'ש\''} color="#6366f1" />
+        <StatCard label="עובדים פעילים"    value={activeUsers}         color="#10b981" />
+        <StatCard label="פרויקטים פעילים"  value={projectReport.length} color="#3b82f6" />
+      </div>
+
+      {/* גרפים */}
+      <div style={{ display:'flex',gap:16,marginBottom:20,flexWrap:'wrap' }}>
+        {/* BarChart – שעות לפי עובד */}
+        <Card style={{ flex:'1 1 340px',minWidth:0 }}>
+          <div style={{ fontSize:13,fontWeight:600,color:'#1e293b',marginBottom:16 }}>שעות לפי עובד</div>
+          {userReport.length === 0
+            ? <p style={{ color:'#94a3b8',textAlign:'center',padding:20,fontSize:12 }}>אין נתונים</p>
+            : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart layout="vertical" data={userReport} margin={{ left:8, right:16 }}>
+                  <XAxis type="number" tick={{ fontSize:10 }} tickFormatter={v => v+'ש\''} />
+                  <YAxis type="category" dataKey="full_name" tick={{ fontSize:11 }} width={72} />
+                  <Tooltip formatter={v => [v + ' שעות', 'שעות']} />
+                  <Bar dataKey="total_hours" radius={[0,4,4,0]} isAnimationActive={false}>
+                    {userReport.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )
+          }
+        </Card>
+
+        {/* PieChart – שעות לפי פרויקט */}
+        <Card style={{ flex:'1 1 300px',minWidth:0 }}>
+          <div style={{ fontSize:13,fontWeight:600,color:'#1e293b',marginBottom:16 }}>שעות לפי פרויקט</div>
+          {projectReport.length === 0
+            ? <p style={{ color:'#94a3b8',textAlign:'center',padding:20,fontSize:12 }}>אין נתונים</p>
+            : (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={projectReport}
+                    dataKey="total_hours"
+                    nameKey="project_name"
+                    cx="50%"
+                    cy="45%"
+                    outerRadius={80}
+                    isAnimationActive={false}
+                    label={({ percent }) => percent > 0.05 ? `${(percent*100).toFixed(0)}%` : ''}
+                    labelLine={false}
+                  >
+                    {projectReport.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v, n) => [v + ' שעות', n]} />
+                  <Legend
+                    iconType="circle"
+                    iconSize={8}
+                    formatter={name => <span style={{ fontSize:11 }}>{name}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )
+          }
+        </Card>
+
+        {/* BarChart – עובדים לפי מספר דיווחים */}
+        <Card style={{ flex:'1 1 340px',minWidth:0 }}>
+          <div style={{ fontSize:13,fontWeight:600,color:'#1e293b',marginBottom:16 }}>דיווחים לפי עובד</div>
+          {userReport.length === 0
+            ? <p style={{ color:'#94a3b8',textAlign:'center',padding:20,fontSize:12 }}>אין נתונים</p>
+            : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={userReport} margin={{ left:0, right:8, bottom:24 }}>
+                  <XAxis dataKey="full_name" tick={{ fontSize:10 }} angle={-25} textAnchor="end" interval={0} />
+                  <YAxis tick={{ fontSize:10 }} />
+                  <Tooltip formatter={v => [v + ' דיווחים', 'דיווחים']} />
+                  <Bar dataKey="entry_count" radius={[4,4,0,0]} isAnimationActive={false}>
+                    {userReport.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[(i + 2) % PIE_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )
+          }
+        </Card>
+      </div>
+    </>
+  );
+}
+
+// ── דף ראשי ──────────────────────────────────────────────────
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { user }    = useAuth();
+  const navigate    = useNavigate();
   const { entries, loading } = useTimeEntries();
   const [summary, setSummary] = useState(null);
-  useEffect(() => { reportsApi.summary().then(setSummary).catch(()=>{}); }, []);
+  const isManager = user?.role === 'manager' || user?.role === 'admin';
+
+  useEffect(() => { reportsApi.summary().then(setSummary).catch(() => {}); }, []);
+
   return (
     <div dir="rtl" style={{ fontFamily:'system-ui,sans-serif' }}>
+
+      {/* כותרת */}
       <div style={{ marginBottom:20 }}>
         <h2 style={{ fontSize:20,fontWeight:600,margin:0,color:'#1e293b' }}>שלום, {user?.full_name?.split(' ')[0]}</h2>
-        <p style={{ color:'#94a3b8',fontSize:13,marginTop:4 }}>{new Date().toLocaleDateString('he-IL',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p>
+        <p style={{ color:'#94a3b8',fontSize:13,marginTop:4 }}>
+          {new Date().toLocaleDateString('he-IL',{ weekday:'long',year:'numeric',month:'long',day:'numeric' })}
+        </p>
       </div>
+
+      {/* כרטיסי סיכום אישי */}
       <div style={{ display:'flex',gap:12,marginBottom:20 }}>
-        {[['היום',summary?.today_minutes,'#6366f1'],['השבוע',summary?.week_minutes,'#3b82f6'],['החודש',summary?.month_minutes,'#10b981'],['טיוטות',summary?.draft_count,'#f59e0b']].map(([l,v,c]) => (
-          <Card key={l} style={{ flex:1 }}>
-            <div style={{ fontSize:10,color:'#94a3b8',textTransform:'uppercase' }}>{l}</div>
-            <div style={{ fontSize:24,fontWeight:600,color:c,margin:'4px 0' }}>{v!=null?(l==='טיוטות'?v:fmt(+v)):'—'}</div>
-          </Card>
+        {[
+          ['היום',   summary?.today_minutes,  '#6366f1', fmt(+summary?.today_minutes)],
+          ['השבוע',  summary?.week_minutes,   '#3b82f6', fmt(+summary?.week_minutes)],
+          ['החודש',  summary?.month_minutes,  '#10b981', fmt(+summary?.month_minutes)],
+          ['טיוטות', summary?.draft_count,    '#f59e0b', summary?.draft_count],
+        ].map(([l, v, c, display]) => (
+          <StatCard key={l} label={l} value={v != null ? display : null} color={c} />
         ))}
       </div>
+
+      {/* גרפי מנהל / אדמין */}
+      {isManager && (
+        <div style={{ marginBottom:8 }}>
+          <div style={{ fontSize:15,fontWeight:600,color:'#1e293b',marginBottom:16,paddingBottom:8,borderBottom:'1px solid #f1f5f9' }}>
+            סטטיסטיקות צוות
+          </div>
+          <ManagerCharts />
+        </div>
+      )}
+
+      {/* דיווחים אחרונים */}
       <Card>
-        <div style={{ fontSize:13,fontWeight:500,color:'#64748b',marginBottom:12 }}>דיווחים אחרונים</div>
+        <div style={{ fontSize:13,fontWeight:500,color:'#64748b',marginBottom:12 }}>הדיווחים האחרונים שלי</div>
         {loading && <Spinner />}
         {entries.slice(0,5).map(e => (
           <div key={e.id} style={{ display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:'1px solid #f1f5f9',fontSize:12 }}>
@@ -41,7 +195,9 @@ export default function DashboardPage() {
           </div>
         ))}
         {!loading && !entries.length && <p style={{ color:'#94a3b8',textAlign:'center',padding:20 }}>אין דיווחים עדיין</p>}
-        <button onClick={() => navigate('/report')} style={{ marginTop:12,width:'100%',padding:8,borderRadius:8,background:'#6366f1',color:'#fff',border:'none',fontSize:13,fontWeight:500,cursor:'pointer' }}>+ דיווח חדש</button>
+        <button onClick={() => navigate('/report')} style={{ marginTop:12,width:'100%',padding:8,borderRadius:8,background:'#6366f1',color:'#fff',border:'none',fontSize:13,fontWeight:500,cursor:'pointer' }}>
+          + דיווח חדש
+        </button>
       </Card>
     </div>
   );

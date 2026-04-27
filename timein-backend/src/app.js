@@ -9,6 +9,7 @@ app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(express.json());
 app.use(morgan('dev'));
 app.use('/api/auth',         require('./routes/auth'));
+app.use('/api/auth',         require('./routes/googleAuth'));
 app.use('/api/users',        require('./routes/users'));
 app.use('/api/projects',     require('./routes/projects'));
 app.use('/api/tasks',        require('./routes/tasks'));
