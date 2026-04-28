@@ -82,7 +82,10 @@ function ManagerCharts() {
 
   useEffect(() => {
     Promise.all([reportsApi.byUser(), reportsApi.byProject()])
-      .then(([u, p]) => { setUR(u.slice(0,7)); setPR(p.slice(0,7)); })
+      .then(([u, p]) => {
+        setUR(u.slice(0,7).map(r => ({ ...r, total_hours: Number(r.total_hours) })));
+        setPR(p.slice(0,7).map(r => ({ ...r, total_hours: Number(r.total_hours) })));
+      })
       .catch(() => {})
       .finally(() => setLoad(false));
   }, []);

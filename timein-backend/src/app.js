@@ -16,6 +16,7 @@ app.use('/api/tasks',        require('./routes/tasks'));
 app.use('/api/time-entries', require('./routes/timeEntries'));
 app.use('/api/reports',      require('./routes/reports'));
 app.use('/api/integrations',  require('./routes/integrations'));
+app.use('/api/clickup',       require('./routes/clickup'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 app.use(require('./middleware/errorHandler'));

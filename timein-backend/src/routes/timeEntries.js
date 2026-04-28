@@ -4,19 +4,28 @@ const pool   = require('../config/db');
 const { authenticate, requireRole } = require('../middleware/auth');
 
 router.get('/', authenticate, async (req, res, next) => {
-  const { userId, projectId, taskId, status, dateFrom, dateTo } = req.query;
+  const { userId, projectId, taskId, status, dateFrom, dateTo, clickupTaskId } = req.query;
   const conds = [], params = [];
   if (req.user.role === 'employee') { params.push(req.user.id); conds.push('te.user_id=$' + params.length); }
   else if (userId) { params.push(userId); conds.push('te.user_id=$' + params.length); }
-  if (projectId) { params.push(projectId); conds.push('te.project_id=$' + params.length); }
-  if (taskId)    { params.push(taskId);    conds.push('te.task_id=$' + params.length); }
-  if (status)    { params.push(status);    conds.push('te.status=$' + params.length); }
-  if (dateFrom)  { params.push(dateFrom);  conds.push('te.date>=$' + params.length); }
-  if (dateTo)    { params.push(dateTo);    conds.push('te.date<=$' + params.length); }
+  if (projectId)    { params.push(projectId);    conds.push('te.project_id=$' + params.length); }
+  if (taskId)       { params.push(taskId);        conds.push('te.task_id=$' + params.length); }
+  if (status)       { params.push(status);        conds.push('te.status=$' + params.length); }
+  if (dateFrom)     { params.push(dateFrom);      conds.push('te.date>=$' + params.length); }
+  if (dateTo)       { params.push(dateTo);        conds.push('te.date<=$' + params.length); }
+  if (clickupTaskId){ params.push(clickupTaskId); conds.push('te.related_clickup_task_id=$' + params.length); }
   const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
   try {
     const { rows } = await pool.query(
-      'SELECT te.*,u.full_name AS user_name,p.project_name,t.task_name FROM time_entries te LEFT JOIN users u ON u.id=te.user_id LEFT JOIN projects p ON p.id=te.project_id LEFT JOIN tasks t ON t.id=te.task_id ' + where + ' ORDER BY te.date DESC,te.created_at DESC',
+      `SELECT te.*, u.full_name AS user_name, p.project_name, t.task_name,
+              ctl.task_name AS clickup_task_name
+       FROM time_entries te
+       LEFT JOIN users u               ON u.id   = te.user_id
+       LEFT JOIN projects p            ON p.id   = te.project_id
+       LEFT JOIN tasks t               ON t.id   = te.task_id
+       LEFT JOIN clickup_task_links ctl ON ctl.clickup_task_id = te.related_clickup_task_id
+       ${where}
+       ORDER BY te.date DESC, te.created_at DESC`,
       params
     );
     res.json(rows);

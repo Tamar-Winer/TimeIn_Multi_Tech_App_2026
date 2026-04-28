@@ -6,6 +6,7 @@ import { useTasks }       from '../hooks/useTasks';
 import { useTimeEntries } from '../hooks/useTimeEntries';
 import { useToast }       from '../context/ToastContext';
 import { useTimer }       from '../context/TimerContext';
+import { clickupApi }     from '../api/clickup';
 import Card from '../components/common/Card';
 
 const today = new Date().toISOString().slice(0,10);
@@ -34,6 +35,27 @@ export default function ReportPage() {
   });
   const [saving, setSaving] = useState(false);
   const { tasks } = useTasks({ projectId: form.projectId || undefined });
+
+  // ── ClickUp tasks picker ──────────────────────────────────────
+  const [cuTasks,    setCuTasks]    = useState([]);
+  const [cuSearch,   setCuSearch]   = useState('');
+  const [cuOpen,     setCuOpen]     = useState(false);
+  const [cuSelected, setCuSelected] = useState(null); // { clickup_task_id, task_name }
+
+  useEffect(() => {
+    clickupApi.getTasks({ search: cuSearch }).then(setCuTasks).catch(() => {});
+  }, [cuSearch]);
+
+  const handleCuSelect = (task) => {
+    setCuSelected(task);
+    setForm(p => ({ ...p, clickUpTaskId: task.clickup_task_id }));
+    setCuOpen(false);
+    setCuSearch('');
+  };
+  const handleCuClear = () => {
+    setCuSelected(null);
+    setForm(p => ({ ...p, clickUpTaskId: '' }));
+  };
 
   // ── העתקת דיווח קיים ─────────────────────────────────────────
   useEffect(() => {
@@ -260,8 +282,45 @@ export default function ReportPage() {
             <textarea value={form.description} onChange={set('description')} rows={3} placeholder="מה עשית?" style={{...inp,resize:'vertical',fontFamily:'inherit'}}/>
           </div>
           <div style={{ display:'flex',gap:10 }}>
-            <div style={{ flex:1 }}><label style={lbl}>Git Commit Hash</label><input value={form.commitHash} onChange={set('commitHash')} placeholder="abc123" style={inp}/></div>
-            <div style={{ flex:1 }}><label style={lbl}>ClickUp Task ID</label><input value={form.clickUpTaskId} onChange={set('clickUpTaskId')} placeholder="CU-T001" style={inp}/></div>
+            <div style={{ flex:1 }}>
+              <label style={lbl}>Git Commit Hash</label>
+              <input value={form.commitHash} onChange={set('commitHash')} placeholder="abc123" style={inp}/>
+            </div>
+            <div style={{ flex:1 }}>
+              <label style={lbl}>משימת ClickUp</label>
+              {cuSelected ? (
+                <div style={{ display:'flex',alignItems:'center',gap:6,padding:'8px 10px',border:'1px solid #6366f1',borderRadius:8,background:'#f5f3ff',fontSize:13 }}>
+                  <span style={{ flex:1,color:'#4338ca',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>
+                    {cuSelected.task_name}
+                  </span>
+                  <span style={{ fontSize:10,color:'#94a3b8',fontFamily:'monospace' }}>{cuSelected.clickup_task_id}</span>
+                  <button onClick={handleCuClear} style={{ background:'none',border:'none',cursor:'pointer',color:'#94a3b8',fontSize:14,lineHeight:1 }}>✕</button>
+                </div>
+              ) : (
+                <div style={{ position:'relative' }}>
+                  <input
+                    value={cuSearch}
+                    onChange={e => { setCuSearch(e.target.value); setCuOpen(true); }}
+                    onFocus={() => setCuOpen(true)}
+                    placeholder="חפש משימה..."
+                    style={inp}
+                  />
+                  {cuOpen && cuTasks.length > 0 && (
+                    <div style={{ position:'absolute',top:'100%',right:0,left:0,zIndex:100,background:'#fff',border:'1px solid #e2e8f0',borderRadius:8,boxShadow:'0 4px 12px rgba(0,0,0,0.1)',maxHeight:200,overflowY:'auto' }}>
+                      {cuTasks.slice(0,10).map(t => (
+                        <div key={t.clickup_task_id} onClick={() => handleCuSelect(t)}
+                          style={{ padding:'8px 12px',cursor:'pointer',fontSize:12,borderBottom:'1px solid #f1f5f9' }}
+                          onMouseEnter={e => e.currentTarget.style.background='#f5f3ff'}
+                          onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                          <div style={{ fontWeight:500,color:'#1e293b' }}>{t.task_name}</div>
+                          <div style={{ color:'#94a3b8',fontSize:11 }}>{t.list_name} · {t.status}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           <div style={{ display:'flex',gap:10 }}>
             <button onClick={handleSave} disabled={saving} style={{ flex:1,padding:10,borderRadius:8,background:'#6366f1',color:'#fff',border:'none',fontSize:14,fontWeight:500,cursor:'pointer',opacity:saving?0.7:1 }}>
