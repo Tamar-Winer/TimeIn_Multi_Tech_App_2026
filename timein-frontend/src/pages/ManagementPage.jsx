@@ -8,6 +8,7 @@ import { usersApi }       from '../api/users';
 import { useProjects }    from '../hooks/useProjects';
 import { integrationsApi } from '../api/integrations';
 import { reportsApi }     from '../api/reports';
+import { useResponsive }  from '../hooks/useResponsive';
 import Card    from '../components/common/Card';
 import Badge   from '../components/common/Badge';
 import Spinner from '../components/common/Spinner';
@@ -34,6 +35,7 @@ function monthStartStr() {
 export default function ManagementPage() {
   const { user }     = useAuth();
   const { addToast } = useToast();
+  const { isMobile } = useResponsive();
   const isAdmin      = user?.role === 'admin';
 
   const [mainTab, setMainTab] = useState('approvals');
@@ -341,16 +343,16 @@ export default function ManagementPage() {
           </div>
           {loading && <Spinner />}
           {entries.map(e => (
-            <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid #f1f5f9', fontSize: 12 }}>
-              <span style={{ color: '#94a3b8', minWidth: 80 }}>{e.date}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 500 }}>{e.user_name}</div>
-                <div style={{ color: '#64748b' }}>{e.project_name}</div>
+            <div key={e.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: '10px 0', borderBottom: '1px solid #f1f5f9', fontSize: 12 }}>
+              <span style={{ color: '#94a3b8', whiteSpace: 'nowrap', fontSize: 11 }}>{e.date}</span>
+              <div style={{ flex: '1 1 120px', minWidth: 0 }}>
+                <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.user_name}</div>
+                <div style={{ color: '#64748b', fontSize: 11 }}>{e.project_name}</div>
               </div>
-              <span style={{ fontWeight: 600, color: '#6366f1' }}>{fmt(e.duration_minutes)}</span>
+              <span style={{ fontWeight: 600, color: '#6366f1', whiteSpace: 'nowrap' }}>{fmt(e.duration_minutes)}</span>
               <Badge status={e.status} resubmitted={!!e.rejection_reason} />
-              {(e.status === 'submitted' || e.status === 'draft') && (
-                <div style={{ display: 'flex', gap: 5 }}>
+              {e.status === 'submitted' && (
+                <div style={{ display: 'flex', gap: 5, flexBasis: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
                   <button onClick={() => approve(e.id).catch(err => addToast(err.message, 'error'))}
                     style={{ padding: '4px 10px', borderRadius: 6, background: '#d1fae5', color: '#065f46', border: 'none', fontSize: 11, cursor: 'pointer', fontWeight: 500 }}>אשר</button>
                   <button onClick={() => handleReject(e.id)}
@@ -402,26 +404,28 @@ export default function ManagementPage() {
           {!rLoading && Array.isArray(data) && rType === 'byUser' && (
             <div>
               <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>לחץ על שורה לפירוט פרויקטים, משימות ופירוט יומי</p>
-              <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>{['עובד', 'צוות', 'שעות', 'דיווחים', 'פרויקטים', 'משימות'].map(h => <th key={h} style={th}>{h}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {data.map(r => (
-                    <Fragment key={r.id}>
-                      <tr style={clickableRow(expandId === r.id)} onClick={() => handleRowClick(r.id)}>
-                        <td style={td}><span style={{ fontWeight: 500 }}>{r.full_name}</span> {expandId === r.id ? '▲' : '▼'}</td>
-                        <td style={{ ...td, color: '#64748b' }}>{r.team || '—'}</td>
-                        <td style={{ ...td, color: '#6366f1', fontWeight: 600 }}>{fmtH(r.total_hours)}</td>
-                        <td style={{ ...td, color: '#64748b' }}>{r.entry_count}</td>
-                        <td style={{ ...td, color: '#64748b' }}>{r.project_count}</td>
-                        <td style={{ ...td, color: '#64748b' }}>{r.task_count}</td>
-                      </tr>
-                      {renderDetailPanel(r)}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', minWidth: 420 }}>
+                  <thead>
+                    <tr>{['עובד', 'צוות', 'שעות', 'דיווחים', 'פרויקטים', 'משימות'].map(h => <th key={h} style={th}>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {data.map(r => (
+                      <Fragment key={r.id}>
+                        <tr style={clickableRow(expandId === r.id)} onClick={() => handleRowClick(r.id)}>
+                          <td style={td}><span style={{ fontWeight: 500 }}>{r.full_name}</span> {expandId === r.id ? '▲' : '▼'}</td>
+                          <td style={{ ...td, color: '#64748b' }}>{r.team || '—'}</td>
+                          <td style={{ ...td, color: '#6366f1', fontWeight: 600 }}>{fmtH(r.total_hours)}</td>
+                          <td style={{ ...td, color: '#64748b' }}>{r.entry_count}</td>
+                          <td style={{ ...td, color: '#64748b' }}>{r.project_count}</td>
+                          <td style={{ ...td, color: '#64748b' }}>{r.task_count}</td>
+                        </tr>
+                        {renderDetailPanel(r)}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               {!data.length && <p style={{ color: '#94a3b8', textAlign: 'center', padding: 20 }}>אין נתונים</p>}
             </div>
           )}
@@ -430,25 +434,27 @@ export default function ManagementPage() {
           {!rLoading && Array.isArray(data) && rType === 'byProject' && (
             <div>
               <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>לחץ על שורה לפירוט עובדים ומשימות</p>
-              <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>{['פרויקט', 'שעות', 'עובדים', 'משימות', 'דיווחים'].map(h => <th key={h} style={th}>{h}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {data.map(r => (
-                    <Fragment key={r.id}>
-                      <tr style={clickableRow(expandId === r.id)} onClick={() => handleRowClick(r.id)}>
-                        <td style={td}><span style={{ fontWeight: 500 }}>{r.project_name}</span> {expandId === r.id ? '▲' : '▼'}</td>
-                        <td style={{ ...td, color: '#6366f1', fontWeight: 600 }}>{fmtH(r.total_hours)}</td>
-                        <td style={{ ...td, color: '#64748b' }}>{r.user_count}</td>
-                        <td style={{ ...td, color: '#64748b' }}>{r.task_count}</td>
-                        <td style={{ ...td, color: '#64748b' }}>{r.entry_count}</td>
-                      </tr>
-                      {renderDetailPanel(r)}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', minWidth: 360 }}>
+                  <thead>
+                    <tr>{['פרויקט', 'שעות', 'עובדים', 'משימות', 'דיווחים'].map(h => <th key={h} style={th}>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {data.map(r => (
+                      <Fragment key={r.id}>
+                        <tr style={clickableRow(expandId === r.id)} onClick={() => handleRowClick(r.id)}>
+                          <td style={td}><span style={{ fontWeight: 500 }}>{r.project_name}</span> {expandId === r.id ? '▲' : '▼'}</td>
+                          <td style={{ ...td, color: '#6366f1', fontWeight: 600 }}>{fmtH(r.total_hours)}</td>
+                          <td style={{ ...td, color: '#64748b' }}>{r.user_count}</td>
+                          <td style={{ ...td, color: '#64748b' }}>{r.task_count}</td>
+                          <td style={{ ...td, color: '#64748b' }}>{r.entry_count}</td>
+                        </tr>
+                        {renderDetailPanel(r)}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               {!data.length && <p style={{ color: '#94a3b8', textAlign: 'center', padding: 20 }}>אין נתונים</p>}
             </div>
           )}
@@ -457,25 +463,27 @@ export default function ManagementPage() {
           {!rLoading && Array.isArray(data) && rType === 'byTask' && (
             <div>
               <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>לחץ על שורה לפירוט עובדים ותאריכי עבודה</p>
-              <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>{['משימה', 'פרויקט', 'שעות', 'עובדים', 'פעילות אחרונה'].map(h => <th key={h} style={th}>{h}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {data.map(r => (
-                    <Fragment key={r.id}>
-                      <tr style={clickableRow(expandId === r.id)} onClick={() => handleRowClick(r.id)}>
-                        <td style={td}><span style={{ fontWeight: 500 }}>{r.task_name}</span> {expandId === r.id ? '▲' : '▼'}</td>
-                        <td style={{ ...td, color: '#64748b' }}>{r.project_name}</td>
-                        <td style={{ ...td, color: '#6366f1', fontWeight: 600 }}>{fmtH(r.total_hours)}</td>
-                        <td style={{ ...td, color: '#64748b' }}>{r.user_count}</td>
-                        <td style={{ ...td, color: '#94a3b8' }}>{r.last_activity || '—'}</td>
-                      </tr>
-                      {renderDetailPanel(r)}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', minWidth: 380 }}>
+                  <thead>
+                    <tr>{['משימה', 'פרויקט', 'שעות', 'עובדים', 'פעילות אחרונה'].map(h => <th key={h} style={th}>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {data.map(r => (
+                      <Fragment key={r.id}>
+                        <tr style={clickableRow(expandId === r.id)} onClick={() => handleRowClick(r.id)}>
+                          <td style={td}><span style={{ fontWeight: 500 }}>{r.task_name}</span> {expandId === r.id ? '▲' : '▼'}</td>
+                          <td style={{ ...td, color: '#64748b' }}>{r.project_name}</td>
+                          <td style={{ ...td, color: '#6366f1', fontWeight: 600 }}>{fmtH(r.total_hours)}</td>
+                          <td style={{ ...td, color: '#64748b' }}>{r.user_count}</td>
+                          <td style={{ ...td, color: '#94a3b8' }}>{r.last_activity || '—'}</td>
+                        </tr>
+                        {renderDetailPanel(r)}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               {!data.length && <p style={{ color: '#94a3b8', textAlign: 'center', padding: 20 }}>אין נתונים</p>}
             </div>
           )}

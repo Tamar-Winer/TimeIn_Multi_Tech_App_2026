@@ -68,7 +68,7 @@ router.patch('/:id/submit', authenticate, async (req, res, next) => {
 router.patch('/:id/approve', authenticate, requireRole('manager','admin'), async (req, res, next) => {
   try {
     const { rows } = await pool.query(
-      "UPDATE time_entries SET status='approved',approved_by=$1,approved_at=NOW(),updated_at=NOW() WHERE id=$2 AND status IN ('draft','submitted') RETURNING *",
+      "UPDATE time_entries SET status='approved',approved_by=$1,approved_at=NOW(),updated_at=NOW() WHERE id=$2 AND status='submitted' RETURNING *",
       [req.user.id, req.params.id]
     );
     if (!rows.length) return res.status(400).json({ error: 'Not found or not submitted' });
@@ -83,10 +83,10 @@ router.patch('/:id/reject', authenticate, requireRole('manager','admin'), async 
       [req.params.id]
     );
     const { rows } = await pool.query(
-      "UPDATE time_entries SET status='rejected',rejection_reason=$1,updated_at=NOW() WHERE id=$2 AND status IN ('draft','submitted') RETURNING *",
+      "UPDATE time_entries SET status='rejected',rejection_reason=$1,updated_at=NOW() WHERE id=$2 AND status='submitted' RETURNING *",
       [req.body.reason||null, req.params.id]
     );
-    if (!rows.length) return res.status(400).json({ error: 'Not found or not rejectable' });
+    if (!rows.length) return res.status(400).json({ error: 'Not found or not submitted' });
 
     if (infoRes.rows.length) {
       const e = infoRes.rows[0];
@@ -133,10 +133,10 @@ router.patch('/:id', authenticate, async (req, res, next) => {
            related_commit_ids=COALESCE($9,related_commit_ids),
            status=CASE WHEN status='rejected' THEN 'submitted' ELSE status END,
            updated_at=NOW()
-       WHERE id=$10 RETURNING *`,
-      [projectId, taskId, date, startTime, endTime, dur, workType, description, relatedCommitIds, req.params.id]
+       WHERE id=$10 AND user_id=$11 AND status IN ('draft','rejected') RETURNING *`,
+      [projectId, taskId, date, startTime, endTime, dur, workType, description, relatedCommitIds, req.params.id, req.user.id]
     );
-    if (!rows.length) return res.status(404).json({ error: 'Not found' });
+    if (!rows.length) return res.status(404).json({ error: 'Not found or not editable' });
 
     // שלח notification למנהלים כשעובד מתקן דיווח שנדחה
     if (wasRejected) {
