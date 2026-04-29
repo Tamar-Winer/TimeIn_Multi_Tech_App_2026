@@ -20,6 +20,30 @@ router.get('/summary', authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── Task breakdown for logged-in employee ────────────────────────────────────
+router.get('/my-task-breakdown', authenticate, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT COALESCE(t.task_name, 'ללא משימה') AS task_name,
+              t.id AS task_id,
+              p.project_name,
+              COALESCE(SUM(te.duration_minutes), 0)::int          AS total_minutes,
+              ROUND(COALESCE(SUM(te.duration_minutes), 0) / 60.0, 2) AS total_hours,
+              COUNT(te.id)::int                                    AS entry_count
+       FROM time_entries te
+       JOIN projects p ON p.id = te.project_id
+       LEFT JOIN tasks t ON t.id = te.task_id
+       WHERE te.user_id = $1
+         AND te.date >= date_trunc('month', NOW())
+       GROUP BY t.id, t.task_name, p.project_name
+       ORDER BY total_minutes DESC
+       LIMIT 10`,
+      [req.user.id]
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
 // ── לפי עובד ────────────────────────────────────────────────────────────────
 router.get('/by-user', authenticate, requireRole('manager','admin'), async (req, res, next) => {
   try {
@@ -203,10 +227,46 @@ router.get('/by-task/:taskId', authenticate, requireRole('manager','admin'), asy
   } catch (err) { next(err); }
 });
 
-// ── חריגות ──────────────────────────────────────────────────────────────────
-router.get('/anomalies', authenticate, requireRole('manager','admin'), async (req, res, next) => {
+// ── Estimate vs Actual ───────────────────────────────────────────────────────
+router.get('/estimate-vs-actual', authenticate, requireRole('manager','admin'), async (req, res, next) => {
   try {
-    const [long, missing] = await Promise.all([
+    const { dateFrom, dateTo } = req.query;
+    const { conds, vals } = dateWhere(dateFrom, dateTo, 'te.date');
+    const joinExtra = conds.length ? 'AND ' + conds.join(' AND ') : '';
+    const { rows } = await pool.query(
+      `SELECT t.id, t.task_name, p.project_name,
+              COALESCE(t.estimated_hours, 0)::float                        AS estimated_hours,
+              ROUND(COALESCE(SUM(te.duration_minutes), 0) / 60.0, 2)       AS actual_hours,
+              ROUND(COALESCE(SUM(te.duration_minutes), 0) / 60.0, 2) -
+                    COALESCE(t.estimated_hours, 0)                          AS variance_hours,
+              CASE
+                WHEN COALESCE(t.estimated_hours, 0) = 0 THEN NULL
+                ELSE ROUND(
+                  ((COALESCE(SUM(te.duration_minutes), 0) / 60.0) /
+                   t.estimated_hours - 1) * 100, 1
+                )
+              END                                                            AS variance_pct,
+              COUNT(te.id)::int                                              AS entry_count,
+              COUNT(DISTINCT te.user_id)::int                               AS user_count
+       FROM tasks t
+       LEFT JOIN projects p      ON p.id = t.project_id
+       LEFT JOIN time_entries te ON te.task_id = t.id ${joinExtra}
+       WHERE t.estimated_hours IS NOT NULL AND t.estimated_hours > 0
+       GROUP BY t.id, t.task_name, t.estimated_hours, p.project_name
+       ORDER BY ABS(
+         ROUND(COALESCE(SUM(te.duration_minutes), 0) / 60.0, 2) -
+         COALESCE(t.estimated_hours, 0)
+       ) DESC`,
+      vals
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
+// ── חריגות ──────────────────────────────────────────────────────────────────
+router.get('/anomalies', authenticate, requireRole('manager','admin'), async (_req, res, next) => {
+  try {
+    const [long, missing, overlaps] = await Promise.all([
       pool.query(
         `SELECT te.id, te.date, te.duration_minutes, u.full_name, p.project_name
          FROM time_entries te
@@ -222,8 +282,26 @@ router.get('/anomalies', authenticate, requireRole('manager','admin'), async (re
          GROUP BY u.id, u.full_name, u.team
          HAVING MAX(te.date) < NOW() - INTERVAL '7 days' OR MAX(te.date) IS NULL`
       ),
+      pool.query(
+        `SELECT a.id AS entry_a_id, b.id AS entry_b_id,
+                u.full_name, a.date,
+                a.start_time, a.end_time,
+                b.start_time AS b_start_time, b.end_time AS b_end_time,
+                pa.project_name AS project_a, pb.project_name AS project_b
+         FROM time_entries a
+         JOIN time_entries b  ON a.user_id = b.user_id
+                              AND a.date   = b.date
+                              AND a.id     < b.id
+                              AND a.start_time IS NOT NULL AND a.end_time IS NOT NULL
+                              AND b.start_time IS NOT NULL AND b.end_time IS NOT NULL
+                              AND (a.start_time, a.end_time) OVERLAPS (b.start_time, b.end_time)
+         JOIN users u         ON u.id = a.user_id
+         JOIN projects pa     ON pa.id = a.project_id
+         JOIN projects pb     ON pb.id = b.project_id
+         ORDER BY a.date DESC LIMIT 20`
+      ),
     ]);
-    res.json({ longEntries: long.rows, missingActivity: missing.rows });
+    res.json({ longEntries: long.rows, missingActivity: missing.rows, overlappingEntries: overlaps.rows });
   } catch (err) { next(err); }
 });
 

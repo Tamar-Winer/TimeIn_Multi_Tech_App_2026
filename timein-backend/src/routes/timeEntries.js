@@ -35,6 +35,30 @@ router.get('/', authenticate, async (req, res, next) => {
 router.post('/', authenticate, async (req, res, next) => {
   const { projectId, taskId, date, startTime, endTime, durationMinutes, workType, description, source, relatedCommitIds, relatedClickupTaskId } = req.body;
   if (!projectId || !date) return res.status(400).json({ error: 'projectId and date required' });
+  if (startTime && endTime) {
+    const [sh,sm] = startTime.split(':').map(Number);
+    const [eh,em] = endTime.split(':').map(Number);
+    if (eh*60+em <= sh*60+sm) return res.status(400).json({ error: 'שעת הסיום חייבת להיות אחרי שעת ההתחלה' });
+  }
+  // Retroactive policy check (employees only)
+  if (req.user.role === 'employee') {
+    try {
+      const { rows: cfg } = await pool.query(
+        "SELECT key, value FROM settings WHERE key IN ('retroactive_allowed','retroactive_max_days')"
+      );
+      const s = Object.fromEntries(cfg.map(r => [r.key, r.value]));
+      if (s.retroactive_allowed === 'false') {
+        const today = new Date(); today.setHours(0,0,0,0);
+        const entryDate = new Date(date); entryDate.setHours(0,0,0,0);
+        if (entryDate < today) return res.status(403).json({ error: 'דיווח רטרואקטיבי אינו מורשה במערכת' });
+      } else if (s.retroactive_max_days) {
+        const maxDays = parseInt(s.retroactive_max_days, 10);
+        const cutoff  = new Date(); cutoff.setDate(cutoff.getDate() - maxDays); cutoff.setHours(0,0,0,0);
+        const entryDate = new Date(date); entryDate.setHours(0,0,0,0);
+        if (entryDate < cutoff) return res.status(403).json({ error: `לא ניתן לדווח על תאריך ישן מ-${maxDays} ימים` });
+      }
+    } catch (_) {}
+  }
   let dur = durationMinutes;
   if (!dur && startTime && endTime) {
     const [sh,sm] = startTime.split(':').map(Number);
@@ -104,6 +128,11 @@ router.patch('/:id/reject', authenticate, requireRole('manager','admin'), async 
 
 router.patch('/:id', authenticate, async (req, res, next) => {
   const { projectId, taskId, date, startTime, endTime, durationMinutes, workType, description, relatedCommitIds } = req.body;
+  if (startTime && endTime) {
+    const [sh,sm] = startTime.split(':').map(Number);
+    const [eh,em] = endTime.split(':').map(Number);
+    if (eh*60+em <= sh*60+sm) return res.status(400).json({ error: 'שעת הסיום חייבת להיות אחרי שעת ההתחלה' });
+  }
   let dur = durationMinutes;
   if (!dur && startTime && endTime) {
     const [sh,sm] = startTime.split(':').map(Number);

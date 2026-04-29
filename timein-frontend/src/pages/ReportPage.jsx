@@ -7,7 +7,8 @@ import { useTimeEntries } from '../hooks/useTimeEntries';
 import { useToast }       from '../context/ToastContext';
 import { useTimer }       from '../context/TimerContext';
 import { useResponsive }  from '../hooks/useResponsive';
-import { clickupApi }     from '../api/clickup';
+import { clickupApi }       from '../api/clickup';
+import { integrationsApi }  from '../api/integrations';
 import Card from '../components/common/Card';
 
 const today = new Date().toISOString().slice(0,10);
@@ -43,9 +44,24 @@ export default function ReportPage() {
   const [cuOpen,     setCuOpen]     = useState(false);
   const [cuSelected, setCuSelected] = useState(null);
 
+  // Auto-suggestions
+  const [gitSuggestions, setGitSuggestions] = useState([]);
+  const [suggestOpen,    setSuggestOpen]    = useState(false);
+
   useEffect(() => {
     clickupApi.getTasks({ search: cuSearch }).then(setCuTasks).catch(() => {});
   }, [cuSearch]);
+
+  // Fetch unlinked Git commits for the selected date
+  useEffect(() => {
+    if (id) return;
+    integrationsApi.getCommits({ dateFrom: form.date, dateTo: form.date, linked: 'false' })
+      .then(rows => {
+        setGitSuggestions(rows || []);
+        if (rows?.length) setSuggestOpen(true);
+      })
+      .catch(() => setGitSuggestions([]));
+  }, [form.date, id]);
 
   const handleCuSelect = (task) => {
     setCuSelected(task);
@@ -218,6 +234,76 @@ export default function ReportPage() {
               </div>
             )}
           </div>
+        </Card>
+      )}
+
+      {/* Auto-suggestions panel */}
+      {!id && (gitSuggestions.length > 0 || cuTasks.length > 0) && (
+        <Card style={{ ...cardStyle, marginBottom: 16, border: '1px solid #e0e7ff' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+            onClick={() => setSuggestOpen(v => !v)}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#4338ca' }}>
+              ✨ הצעות אוטומטיות {gitSuggestions.length + cuTasks.length > 0 && `(${gitSuggestions.length + cuTasks.length})`}
+            </div>
+            <span style={{ fontSize: 12, color: '#94a3b8' }}>{suggestOpen ? '▲' : '▼'}</span>
+          </div>
+
+          {suggestOpen && (
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Git commits */}
+              {gitSuggestions.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Git Commits ({form.date})</div>
+                  {gitSuggestions.map(c => (
+                    <div key={c.id}
+                      style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fafafa', cursor: 'pointer', marginBottom: 6 }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#f0f0ff'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#fafafa'}
+                      onClick={() => {
+                        setForm(p => ({
+                          ...p,
+                          commitHash:  c.commit_hash,
+                          description: p.description || c.commit_message?.slice(0, 200) || '',
+                        }));
+                        setSuggestOpen(false);
+                        addToast('Commit הוכנס לדיווח', 'success');
+                      }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <code style={{ fontSize: 10, background: '#e0e7ff', padding: '2px 6px', borderRadius: 4, color: '#4338ca', flexShrink: 0 }}>
+                          {c.commit_hash?.slice(0, 7)}
+                        </code>
+                        <span style={{ fontSize: 12, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                          {c.commit_message}
+                        </span>
+                        <span style={{ fontSize: 10, color: '#94a3b8', whiteSpace: 'nowrap' }}>{c.repository}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ClickUp tasks */}
+              {cuTasks.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>משימות ClickUp</div>
+                  {cuTasks.slice(0, 5).map(t => (
+                    <div key={t.clickup_task_id}
+                      style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fafafa', cursor: 'pointer', marginBottom: 6 }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#f0fff4'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#fafafa'}
+                      onClick={() => {
+                        handleCuSelect(t);
+                        setSuggestOpen(false);
+                        addToast('משימת ClickUp הוכנסה לדיווח', 'success');
+                      }}>
+                      <div style={{ fontSize: 12, color: '#1e293b', fontWeight: 500 }}>{t.task_name}</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{t.list_name} · {t.status}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       )}
 

@@ -185,6 +185,34 @@ function MyProjectBreakdown({ entries }) {
   );
 }
 
+function MyTaskBreakdown() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    reportsApi.myTaskBreakdown()
+      .then(rows => setData(rows.map(r => ({ ...r, total_hours: Number(r.total_hours) }))))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+  if (loading) return <Spinner />;
+  if (!data.length) return null;
+  return (
+    <Card style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b', marginBottom: 16 }}>שעות לפי משימה — החודש</div>
+      <ResponsiveContainer width="100%" height={180}>
+        <BarChart layout="vertical" data={data} margin={{ left: 8, right: 24 }}>
+          <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => v + 'ש\''} />
+          <YAxis type="category" dataKey="task_name" tick={{ fontSize: 10 }} width={90} />
+          <Tooltip formatter={(v, _, props) => [`${v} שעות (${props?.payload?.project_name})`, 'שעות']} />
+          <Bar dataKey="total_hours" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+            {data.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </Card>
+  );
+}
+
 function MyTasks({ userId }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -251,6 +279,7 @@ export default function DashboardPage() {
 
       {user?.role === 'employee' && <MyTasks userId={user.id} />}
       {user?.role === 'employee' && !loading && <MyProjectBreakdown entries={entries} />}
+      {user?.role === 'employee' && <MyTaskBreakdown />}
 
       {isManager && (
         <div style={{ marginBottom:8 }}>

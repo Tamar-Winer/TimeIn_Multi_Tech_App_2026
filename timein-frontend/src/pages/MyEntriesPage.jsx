@@ -63,6 +63,13 @@ export default function MyEntriesPage() {
             <div style={{ flex:'1 1 120px', minWidth:0 }}>
               <div style={{ fontWeight:500, color:'#1e293b', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.project_name}</div>
               {e.description && <div style={{ color:'#64748b', fontSize:11, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.description}</div>}
+              {e.related_commit_ids?.length > 0 && (
+                <div style={{ display:'flex', gap:4, flexWrap:'wrap', marginTop:3 }}>
+                  {e.related_commit_ids.map(h => (
+                    <code key={h} style={{ fontSize:10, background:'#e0e7ff', color:'#4338ca', padding:'1px 5px', borderRadius:3 }}>{h.slice(0,7)}</code>
+                  ))}
+                </div>
+              )}
             </div>
             <span style={{ fontWeight:600, color:'#6366f1', whiteSpace:'nowrap' }}>{fmt(e.duration_minutes)}</span>
             <Badge status={e.status} resubmitted={!!e.rejection_reason}/>
