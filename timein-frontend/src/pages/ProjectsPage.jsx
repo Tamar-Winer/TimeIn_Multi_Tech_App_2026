@@ -108,7 +108,7 @@ export default function ProjectsPage() {
       </div>
 
       <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
-        <button style={tabBtn(tab==='projects')} onClick={() => setTab('projects')}>📁 פרויקטים ({projects.length})</button>
+        <button style={tabBtn(tab==='projects')} onClick={() => setTab('projects')}> פרויקטים ({projects.length})</button>
         <button style={tabBtn(tab==='tasks')}    onClick={() => setTab('tasks')}>✓ משימות ({tasks.length})</button>
       </div>
 

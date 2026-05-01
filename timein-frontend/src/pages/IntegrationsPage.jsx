@@ -400,7 +400,7 @@ function MyCommitsTab({ userId }) {
 
   return (
     <div>
-      <InfoBanner color="yellow">
+      <InfoBanner color="blue">
         commits הם <strong>כלי תומך בלבד</strong> — לא תחליף לדיווח שעות. לא כל עבודה מתבטאת בקומיט.
       </InfoBanner>
 

@@ -110,6 +110,156 @@ function EmptyState({ text }) {
   return <p style={{ color: T.textFaint, textAlign:'center', padding:'28px 0', margin:0, fontSize:13 }}>{text}</p>;
 }
 
+function RejectModal({ entry, reason, onReasonChange, onConfirm, onClose, loading }) {
+  const quickReasons = ['שעות לא מדויקות', 'חסר תיאור', 'פרויקט שגוי', 'כפילות עם דיווח אחר'];
+  return (
+    <div
+      dir="rtl"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position:'fixed', inset:0, zIndex:1000,
+        background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        padding:20,
+      }}
+    >
+      <div style={{
+        background: T.surface, borderRadius: 18,
+        width:'100%', maxWidth:460,
+        boxShadow:'0 24px 64px rgba(0,0,0,0.22), 0 4px 16px rgba(0,0,0,0.1)',
+        overflow:'hidden',
+        animation:'ti-modal-in 0.18s ease',
+      }}>
+        <style>{`@keyframes ti-modal-in { from { opacity:0; transform:scale(0.95) translateY(8px); } to { opacity:1; transform:none; } }`}</style>
+
+        {/* Header */}
+        <div style={{
+          padding:'20px 24px 16px',
+          borderBottom:`1px solid ${T.borderLight}`,
+          display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12,
+        }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{
+              width:40, height:40, borderRadius:12, flexShrink:0,
+              background: T.errorBg, display:'flex', alignItems:'center', justifyContent:'center',
+              color: T.error,
+            }}>
+              <IcX s={20}/>
+            </div>
+            <div>
+              <div style={{ fontSize:16, fontWeight:800, color:T.text }}>דחיית דיווח</div>
+              <div style={{ fontSize:12, color:T.textFaint, marginTop:2 }}>יש לציין סיבה — העובד יקבל הודעה</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:T.textFaint, padding:4, lineHeight:1, flexShrink:0 }}>
+            <IcX s={16}/>
+          </button>
+        </div>
+
+        {/* Entry info */}
+        {entry && (
+          <div style={{
+            margin:'16px 24px 0',
+            padding:'12px 14px',
+            background: T.surfaceAlt, borderRadius:10,
+            border:`1px solid ${T.border}`,
+            display:'flex', flexWrap:'wrap', gap:'6px 16px',
+          }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
+              <span style={{ fontSize:10, color:T.textFaint, textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:600 }}>עובד</span>
+              <span style={{ fontSize:13, fontWeight:700, color:T.text }}>{entry.user_name}</span>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
+              <span style={{ fontSize:10, color:T.textFaint, textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:600 }}>תאריך</span>
+              <span style={{ fontSize:13, color:T.textMid }}>{entry.date}</span>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
+              <span style={{ fontSize:10, color:T.textFaint, textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:600 }}>פרויקט</span>
+              <span style={{ fontSize:13, color:T.textMid }}>{entry.project_name||'—'}</span>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
+              <span style={{ fontSize:10, color:T.textFaint, textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:600 }}>שעות</span>
+              <span style={{ fontSize:13, fontWeight:700, color:T.primary, fontFamily:'monospace' }}>
+                {entry.duration_minutes != null ? Math.floor(entry.duration_minutes/60)+':'+String(entry.duration_minutes%60).padStart(2,'0') : '—'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Body */}
+        <div style={{ padding:'16px 24px 0' }}>
+          {/* Quick reason chips */}
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
+            {quickReasons.map(r => (
+              <button key={r} onClick={() => onReasonChange(reason === r ? '' : r)} style={{
+                padding:'5px 11px', borderRadius:20, fontSize:11, cursor:'pointer', fontFamily:'inherit',
+                fontWeight: reason === r ? 700 : 400,
+                background: reason === r ? T.errorBg : T.surfaceAlt,
+                color: reason === r ? T.error : T.textSub,
+                border: reason === r ? `1px solid ${T.errorBorder||'#fca5a5'}` : `1px solid ${T.border}`,
+                transition:'all 0.12s',
+              }}>
+                {r}
+              </button>
+            ))}
+          </div>
+
+          <label style={{ fontSize:11, color:T.textSub, fontWeight:600, display:'block', marginBottom:5, letterSpacing:'0.03em', textTransform:'uppercase' }}>
+            סיבת הדחייה
+          </label>
+          <textarea
+            autoFocus
+            value={reason}
+            onChange={e => onReasonChange(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onConfirm(); if (e.key === 'Escape') onClose(); }}
+            rows={3}
+            placeholder="פרט מה יש לתקן בדיווח..."
+            style={{
+              width:'100%', boxSizing:'border-box',
+              padding:'10px 12px', borderRadius:T.radius,
+              border:`1px solid ${T.border}`, fontSize:13,
+              background:T.surface, color:T.text, fontFamily:'inherit',
+              resize:'vertical', lineHeight:1.6,
+              transition:'border-color 0.15s',
+            }}
+            onFocus={e => { e.target.style.borderColor = T.error; e.target.style.boxShadow = `0 0 0 3px ${T.error}18`; }}
+            onBlur={e => { e.target.style.borderColor = T.border; e.target.style.boxShadow = 'none'; }}
+          />
+          <div style={{ fontSize:10, color:T.textFaint, marginTop:4 }}>Ctrl+Enter לאישור מהיר</div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding:'16px 24px 20px',
+          display:'flex', gap:10, justifyContent:'flex-end',
+        }}>
+          <button onClick={onClose} disabled={loading} style={{
+            padding:'10px 20px', borderRadius:T.radius,
+            background:'transparent', color:T.textSub,
+            border:`1px solid ${T.border}`, fontSize:13, cursor:'pointer',
+            fontWeight:500, fontFamily:'inherit',
+          }}>
+            בטל
+          </button>
+          <button onClick={onConfirm} disabled={loading || !reason.trim()} style={{
+            padding:'10px 24px', borderRadius:T.radius,
+            background: (loading || !reason.trim()) ? T.border : T.error,
+            color:'#fff', border:'none', fontSize:13, fontWeight:700,
+            cursor: (loading || !reason.trim()) ? 'not-allowed' : 'pointer',
+            display:'flex', alignItems:'center', gap:8,
+            boxShadow: (loading || !reason.trim()) ? 'none' : '0 4px 12px rgba(220,38,38,0.35)',
+            transition:'all 0.15s', fontFamily:'inherit',
+            opacity: loading ? 0.75 : 1,
+          }}>
+            <IcX s={14}/>
+            {loading ? 'דוחה...' : 'דחה דיווח'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ManagementPage() {
   const { user }     = useAuth();
   const { addToast } = useToast();
@@ -127,6 +277,9 @@ export default function ManagementPage() {
   const { entries, loading, approve, reject } = useTimeEntries(
     Object.fromEntries(Object.entries(f).filter(([,v]) => v))
   );
+  const [rejectModal,   setRejectModal]   = useState(null);
+  const [rejectReason,  setRejectReason]  = useState('');
+  const [rejectLoading, setRejectLoading] = useState(false);
 
   // ── Reports ──────────────────────────────────────────────────
   const { data, loading: rLoading, fetch: fetchReport } = useReports();
@@ -327,9 +480,19 @@ export default function ManagementPage() {
     } catch (err) { addToast(err.message,'error'); }
   };
 
-  const handleReject = async (id) => {
-    const reason = window.prompt('סיבת הדחייה:');
-    try { await reject(id, reason); } catch (err) { addToast(err.message,'error'); }
+  const handleReject = (entry) => {
+    setRejectReason('');
+    setRejectModal(entry);
+  };
+
+  const confirmReject = async () => {
+    if (!rejectModal || !rejectReason.trim()) return;
+    setRejectLoading(true);
+    try {
+      await reject(rejectModal.id, rejectReason.trim());
+      setRejectModal(null);
+    } catch (err) { addToast(err.message,'error'); }
+    finally { setRejectLoading(false); }
   };
 
   // ── Styles ───────────────────────────────────────────────────
@@ -660,7 +823,7 @@ export default function ManagementPage() {
                     style={{ padding:'4px 12px', borderRadius: T.radiusSm, background: T.successBg, color: T.success, border:'none', fontSize:11, cursor:'pointer', fontWeight:600, display:'flex', alignItems:'center', gap:4, fontFamily:'inherit' }}>
                     <IcCheck s={11}/> אשר
                   </button>
-                  <button onClick={() => handleReject(e.id)}
+                  <button onClick={() => handleReject(e)}
                     style={{ padding:'4px 12px', borderRadius: T.radiusSm, background: T.errorBg, color: T.error, border:'none', fontSize:11, cursor:'pointer', fontWeight:600, display:'flex', alignItems:'center', gap:4, fontFamily:'inherit' }}>
                     <IcX s={11}/> דחה
                   </button>
@@ -1289,6 +1452,18 @@ export default function ManagementPage() {
             </ul>
           </div>
         </Card>
+      )}
+
+      {/* ── Reject modal ── */}
+      {rejectModal && (
+        <RejectModal
+          entry={rejectModal}
+          reason={rejectReason}
+          onReasonChange={setRejectReason}
+          onConfirm={confirmReject}
+          onClose={() => setRejectModal(null)}
+          loading={rejectLoading}
+        />
       )}
 
       {/* ── Users ── */}
