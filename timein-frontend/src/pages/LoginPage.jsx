@@ -3,18 +3,27 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth }     from '../context/AuthContext';
 import { useToast }    from '../context/ToastContext';
+import { T }           from '../theme';
 
 const GOOGLE_CLIENT_ID = (() => {
   const v = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
   return v.endsWith('.apps.googleusercontent.com') ? v : '';
 })();
 
+const inp = {
+  width: '100%', padding: '10px 14px', marginTop: 6,
+  border: `1px solid ${T.border}`, borderRadius: T.radius,
+  fontSize: 13, boxSizing: 'border-box', background: T.surface,
+  color: T.text, fontFamily: 'inherit', transition: 'border-color 0.15s, box-shadow 0.15s',
+};
+const lbl = { fontSize: 12, color: T.textSub, fontWeight: 600, letterSpacing: '0.02em' };
+
 export default function LoginPage() {
-  const [mode, setMode]         = useState('login'); // 'login' | 'register'
-  const [email, setEmail]       = useState('');
+  const [mode,     setMode]     = useState('login');
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
   const googleBtnRef            = useRef(null);
   const { login, register }     = useAuth();
   const { addToast }            = useToast();
@@ -23,9 +32,8 @@ export default function LoginPage() {
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) return;
     const script = document.createElement('script');
-    script.src   = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true; script.defer = true;
     script.onload = initGoogle;
     document.head.appendChild(script);
     return () => { try { document.head.removeChild(script); } catch (_) {} };
@@ -33,40 +41,21 @@ export default function LoginPage() {
 
   const initGoogle = () => {
     if (!window.google) return;
-    window.google.accounts.id.initialize({
-      client_id:   GOOGLE_CLIENT_ID,
-      callback:    handleGoogleResponse,
-      auto_select: false,
-    });
+    window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleResponse, auto_select: false });
     renderGoogleBtn();
   };
-
   const renderGoogleBtn = () => {
     if (!window.google || !googleBtnRef.current) return;
     googleBtnRef.current.innerHTML = '';
-    window.google.accounts.id.renderButton(googleBtnRef.current, {
-      theme:  'outline',
-      size:   'large',
-      width:  268,
-      locale: 'he',
-    });
+    window.google.accounts.id.renderButton(googleBtnRef.current, { theme: 'outline', size: 'large', width: 280, locale: 'he' });
   };
-
-  // מרנדר מחדש את כפתור Google כשה-ref זמין
-  useEffect(() => {
-    if (window.google && googleBtnRef.current) renderGoogleBtn();
-  });
+  useEffect(() => { if (window.google && googleBtnRef.current) renderGoogleBtn(); });
 
   const handleGoogleResponse = async (response) => {
     setLoading(true);
-    try {
-      await login(null, null, response.credential);
-      navigate('/');
-    } catch (err) {
-      addToast(err.message || 'שגיאת כניסה עם Google', 'error');
-    } finally {
-      setLoading(false);
-    }
+    try { await login(null, null, response.credential); navigate('/'); }
+    catch (err) { addToast(err.message || 'שגיאת כניסה עם Google', 'error'); }
+    finally { setLoading(false); }
   };
 
   const handleSubmit = async (e) => {
@@ -75,96 +64,102 @@ export default function LoginPage() {
     if (mode === 'register' && !fullName.trim()) { addToast('נא למלא שם מלא', 'error'); return; }
     setLoading(true);
     try {
-      if (mode === 'login') {
-        await login(email, password);
-      } else {
-        await register(fullName.trim(), email, password);
-        addToast('נרשמת בהצלחה!', 'success');
-      }
+      if (mode === 'login') await login(email, password);
+      else { await register(fullName.trim(), email, password); addToast('נרשמת בהצלחה!', 'success'); }
       navigate('/');
-    } catch (err) {
-      addToast(err.message || 'שגיאה, נסה שוב', 'error');
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { addToast(err.message || 'שגיאה, נסה שוב', 'error'); }
+    finally { setLoading(false); }
   };
-
-  const inputStyle = {
-    width: '100%', marginTop: 4, padding: '9px 12px',
-    border: '1px solid #e2e8f0', borderRadius: 8,
-    fontSize: 14, boxSizing: 'border-box', outline: 'none',
-  };
-  const labelStyle = { fontSize: 12, color: '#64748b', fontWeight: 500 };
 
   return (
-    <div dir="rtl" style={{ minHeight: '100vh', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui,sans-serif' }}>
-      <div style={{ background: '#fff', borderRadius: 16, padding: '40px 36px', width: 340, boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+    <div dir="rtl" style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: `linear-gradient(135deg, ${T.primary} 0%, #1D4ED8 50%, ${T.accent} 100%)`,
+      padding: 20,
+    }}>
+      {/* Decorative blobs */}
+      <div style={{ position:'fixed', top:-120, right:-80, width:400, height:400, borderRadius:'50%', background:'rgba(255,255,255,0.04)', pointerEvents:'none' }} />
+      <div style={{ position:'fixed', bottom:-100, left:-60, width:320, height:320, borderRadius:'50%', background:'rgba(255,255,255,0.04)', pointerEvents:'none' }} />
 
-        {/* כותרת */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <h1 style={{ fontSize: 32, fontWeight: 700, color: '#6366f1', margin: 0 }}>TimeIn</h1>
-          <p style={{ color: '#94a3b8', fontSize: 13, margin: '4px 0 0' }}>מערכת ניהול שעות עבודה</p>
+      <div style={{
+        background: T.surface, borderRadius: 20, padding: '40px 36px',
+        width: '100%', maxWidth: 360,
+        boxShadow: '0 24px 64px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08)',
+      }}>
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ fontSize: 36, fontWeight: 800, color: T.primary, letterSpacing: '-1px', lineHeight: 1 }}>TimeIn</div>
+          <p style={{ color: T.textFaint, fontSize: 13, margin: '8px 0 0', fontWeight: 400 }}>מערכת ניהול שעות עבודה</p>
         </div>
 
-        {/* טאבים כניסה / הרשמה */}
-        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 4, marginBottom: 24 }}>
-          {['login', 'register'].map(m => (
+        {/* Mode toggle */}
+        <div style={{ display:'flex', background: T.surfaceAlt, borderRadius: T.radius, padding: 4, marginBottom: 28 }}>
+          {['login','register'].map(m => (
             <button key={m} onClick={() => setMode(m)} style={{
-              flex: 1, padding: '7px 0', border: 'none', borderRadius: 6, fontSize: 13,
-              fontWeight: 500, cursor: 'pointer', transition: 'all .15s',
-              background: mode === m ? '#fff' : 'transparent',
-              color: mode === m ? '#6366f1' : '#64748b',
-              boxShadow: mode === m ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+              flex: 1, padding: '8px 0', border: 'none', borderRadius: T.radiusSm,
+              fontSize: 13, fontWeight: 500, cursor: 'pointer',
+              background: mode === m ? T.surface : 'transparent',
+              color:      mode === m ? T.primary : T.textSub,
+              boxShadow:  mode === m ? T.shadow : 'none',
+              transition: 'all 0.15s',
             }}>
               {m === 'login' ? 'כניסה' : 'הרשמה'}
             </button>
           ))}
         </div>
 
-        {/* טופס */}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap: 16 }}>
           {mode === 'register' && (
             <div>
-              <label style={labelStyle}>שם מלא</label>
-              <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
-                placeholder="ישראל ישראלי" style={inputStyle} />
+              <label style={lbl}>שם מלא</label>
+              <input className="ti-input" type="text" value={fullName}
+                onChange={e => setFullName(e.target.value)}
+                placeholder="ישראל ישראלי" style={inp} />
             </div>
           )}
           <div>
-            <label style={labelStyle}>אימייל</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-              autoFocus placeholder="email@example.com" style={inputStyle} />
+            <label style={lbl}>אימייל</label>
+            <input className="ti-input" type="email" value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoFocus placeholder="email@example.com" style={inp} />
           </div>
           <div>
-            <label style={labelStyle}>סיסמה</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••" style={inputStyle} />
+            <label style={lbl}>סיסמה</label>
+            <input className="ti-input" type="password" value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••" style={inp} />
           </div>
           <button type="submit" disabled={loading} style={{
-            marginTop: 4, padding: 10, borderRadius: 8, background: '#6366f1',
-            color: '#fff', border: 'none', fontSize: 14, fontWeight: 500,
-            cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
+            marginTop: 4, padding: '11px 0',
+            borderRadius: T.radius, background: T.primary,
+            color: '#fff', border: 'none', fontSize: 14, fontWeight: 600,
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.75 : 1,
+            letterSpacing: '0.02em',
+            boxShadow: '0 2px 8px rgba(30,58,138,0.3)',
+            transition: 'opacity 0.15s, transform 0.1s',
           }}>
             {loading
               ? (mode === 'login' ? 'מתחבר...' : 'נרשם...')
-              : (mode === 'login' ? 'כניסה' : 'הרשמה')}
+              : (mode === 'login' ? 'כניסה למערכת' : 'יצירת חשבון')}
           </button>
         </form>
 
-        {/* כניסה עם Google */}
+        {/* Google login */}
         {GOOGLE_CLIENT_ID && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', gap: 10 }}>
-              <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
-              <span style={{ fontSize: 12, color: '#94a3b8', whiteSpace: 'nowrap' }}>או התחבר עם</span>
-              <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+            <div style={{ display:'flex', alignItems:'center', margin:'24px 0 16px', gap:12 }}>
+              <div style={{ flex:1, height:1, background: T.border }} />
+              <span style={{ fontSize:11, color: T.textFaint, whiteSpace:'nowrap', fontWeight:500 }}>או התחבר עם</span>
+              <div style={{ flex:1, height:1, background: T.border }} />
             </div>
-            <div ref={googleBtnRef} style={{ display: 'flex', justifyContent: 'center' }} />
+            <div ref={googleBtnRef} style={{ display:'flex', justifyContent:'center' }} />
           </>
         )}
 
         {!GOOGLE_CLIENT_ID && (
-          <p style={{ marginTop: 20, textAlign: 'center', fontSize: 11, color: '#cbd5e1' }}>
+          <p style={{ marginTop:24, textAlign:'center', fontSize:11, color: T.textFaint }}>
             כניסה עם Google תופעל לאחר הגדרת REACT_APP_GOOGLE_CLIENT_ID
           </p>
         )}

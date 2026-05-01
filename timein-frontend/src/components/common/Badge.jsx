@@ -1,13 +1,24 @@
 
 const M = {
-  draft:       ['טיוטה',              '#f1f5f9','#64748b'],
-  submitted:   ['הוגש',               '#dbeafe','#1d4ed8'],
-  resubmitted: ['הוחזר לבדיקה נוספת','#fef3c7','#92400e'],
-  approved:    ['אושר',               '#d1fae5','#065f46'],
-  rejected:    ['נדחה',               '#fee2e2','#991b1b'],
+  draft:       ['טיוטה',         '#F3F4F6', '#6B7280'],
+  submitted:   ['הוגש',          '#EFF6FF', '#1E3A8A'],
+  resubmitted: ['הוחזר לבדיקה', '#FFFBEB', '#D97706'],
+  approved:    ['אושר',          '#ECFDF5', '#059669'],
+  rejected:    ['נדחה',          '#FEF2F2', '#DC2626'],
 };
+
 export default function Badge({ status, resubmitted }) {
   const key = (resubmitted && status === 'submitted') ? 'resubmitted' : status;
-  const [l,bg,c] = M[key] || ['?','#f1f5f9','#64748b'];
-  return <span style={{ fontSize:11,fontWeight:500,padding:'2px 8px',borderRadius:20,background:bg,color:c }}>{l}</span>;
+  const [l, bg, c] = M[key] || ['?', '#F3F4F6', '#6B7280'];
+  return (
+    <span style={{
+      fontSize: 11, fontWeight: 600,
+      padding: '3px 10px', borderRadius: 20,
+      background: bg, color: c,
+      letterSpacing: '0.02em', whiteSpace: 'nowrap',
+      display: 'inline-block',
+    }}>
+      {l}
+    </span>
+  );
 }

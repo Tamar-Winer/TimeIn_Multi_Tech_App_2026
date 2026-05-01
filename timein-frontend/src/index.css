@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: 'Heebo', system-ui, -apple-system, sans-serif;
+  background: #EEF2F8;
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  direction: rtl;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Global scrollbar ────────────────────────────────── */
+::-webkit-scrollbar         { width: 5px; height: 5px; }
+::-webkit-scrollbar-track   { background: transparent; }
+::-webkit-scrollbar-thumb   { background: #D1D5DB; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+
+/* ── Dark sidebar scrollbar ──────────────────────────── */
+.ti-sidebar-scroll::-webkit-scrollbar-thumb   { background: rgba(255,255,255,0.12); }
+.ti-sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+/* ── Text selection ─────────────────────────────────── */
+::selection { background: #DBEAFE; color: #1E3A8A; }
+
+/* ── Input focus ring ───────────────────────────────── */
+.ti-input:focus {
+  outline: none;
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+/* ── Button base ────────────────────────────────────── */
+button { font-family: inherit; cursor: pointer; }
+a      { text-decoration: none; }
+
+/* ── Sidebar nav link ───────────────────────────────── */
+.ti-sidebar-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  margin-bottom: 3px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: #6B82B5;
+  background: transparent;
+  transition: background 0.12s, color 0.12s;
+}
+.ti-sidebar-link:hover {
+  background: rgba(255,255,255,0.05);
+  color: #93C5FD;
+}
+.ti-sidebar-link.active {
+  background: rgba(59,130,246,0.14);
+  color: #93C5FD;
+  font-weight: 600;
+}
+.ti-sidebar-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #3B82F6;
+}
+
+/* ── Smooth nav transition ──────────────────────────── */
+.ti-nav-link { transition: background 0.12s, color 0.12s; }
+.ti-nav-link:hover { background: #F3F4F6; }
+.ti-nav-link.active { background: #EFF6FF; color: #1E3A8A; }

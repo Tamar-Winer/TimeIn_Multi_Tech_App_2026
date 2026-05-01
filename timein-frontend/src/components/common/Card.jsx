@@ -1,4 +1,17 @@
 
-export default function Card({ children, style={} }) {
-  return <div style={{ background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,padding:'16px 20px',...style }}>{children}</div>;
+import { T } from '../../theme';
+
+export default function Card({ children, style = {} }) {
+  return (
+    <div style={{
+      background: T.surface,
+      border: `1px solid ${T.border}`,
+      borderRadius: T.radiusLg,
+      padding: '20px 24px',
+      boxShadow: T.shadow,
+      ...style,
+    }}>
+      {children}
+    </div>
+  );
 }
