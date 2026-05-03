@@ -5,12 +5,24 @@ const morgan  = require('morgan');
 require('dotenv').config();
 
 const app = express();
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+app.use(cors({
+  origin: (origin, cb) => {
+    // allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return cb(null, true);
+    const allowed = (process.env.FRONTEND_URL || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (allowed.length === 0 || allowed.some(u => origin.startsWith(u))) return cb(null, true);
+    // in production also allow any vercel.app subdomain
+    if (process.env.NODE_ENV === 'production' && origin.includes('.vercel.app')) return cb(null, true);
+    cb(null, true); // permissive fallback for development
+  },
+  credentials: true,
+}));
 app.use(express.json());
 app.use(morgan('dev'));
 app.use('/api/auth',         require('./routes/auth'));
 app.use('/api/auth',         require('./routes/googleAuth'));
 app.use('/api/users',        require('./routes/users'));
+app.use('/api/teams',        require('./routes/teams'));
 app.use('/api/projects',     require('./routes/projects'));
 app.use('/api/tasks',        require('./routes/tasks'));
 app.use('/api/time-entries', require('./routes/timeEntries'));

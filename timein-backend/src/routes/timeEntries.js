@@ -6,8 +6,27 @@ const { authenticate, requireRole } = require('../middleware/auth');
 router.get('/', authenticate, async (req, res, next) => {
   const { userId, projectId, taskId, status, dateFrom, dateTo, clickupTaskId } = req.query;
   const conds = [], params = [];
-  if (req.user.role === 'employee') { params.push(req.user.id); conds.push('te.user_id=$' + params.length); }
-  else if (userId) { params.push(userId); conds.push('te.user_id=$' + params.length); }
+  if (req.user.role === 'employee') {
+    params.push(req.user.id); conds.push('te.user_id=$' + params.length);
+  } else if (req.user.role === 'manager') {
+    // Manager: scope to team members and team project(s)
+    const { rows: teamRows } = await pool.query(
+      'SELECT id, project_id FROM teams WHERE manager_id = $1',
+      [req.user.id]
+    );
+    if (teamRows.length) {
+      const teamIds     = teamRows.map(r => r.id);
+      const teamProjIds = teamRows.map(r => r.project_id).filter(Boolean);
+      params.push(teamIds);     conds.push(`te.user_id IN (SELECT id FROM users WHERE team_id = ANY($${params.length}::int[]))`);
+      if (teamProjIds.length) { params.push(teamProjIds); conds.push(`te.project_id = ANY($${params.length}::int[])`); }
+    } else {
+      // Manager with no team: return nothing
+      conds.push('FALSE');
+    }
+    if (userId)    { params.push(userId);    conds.push('te.user_id=$' + params.length); }
+  } else {
+    if (userId)    { params.push(userId);    conds.push('te.user_id=$' + params.length); }
+  }
   if (projectId)    { params.push(projectId);    conds.push('te.project_id=$' + params.length); }
   if (taskId)       { params.push(taskId);        conds.push('te.task_id=$' + params.length); }
   if (status)       { params.push(status);        conds.push('te.status=$' + params.length); }

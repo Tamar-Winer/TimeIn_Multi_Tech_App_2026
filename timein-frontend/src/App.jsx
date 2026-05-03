@@ -13,6 +13,7 @@ import ReportPage        from './pages/ReportPage';
 import MyEntriesPage     from './pages/MyEntriesPage';
 import ManagementPage    from './pages/ManagementPage';
 import ProjectsPage      from './pages/ProjectsPage';
+import TeamsPage         from './pages/TeamsPage';
 import IntegrationsPage  from './pages/IntegrationsPage';
 
 function ProtectedRoute({ children, roles }) {
@@ -85,6 +86,7 @@ function AppLayout() {
           <Route path="/report/:id"   element={<ReportPage />} />
           <Route path="/my-entries"   element={<MyEntriesPage />} />
           <Route path="/projects"     element={<ProtectedRoute roles={['manager','admin']}><ProjectsPage /></ProtectedRoute>} />
+          <Route path="/teams"        element={<ProtectedRoute roles={['admin']}><TeamsPage /></ProtectedRoute>} />
           <Route path="/management"   element={<ProtectedRoute roles={['manager','admin']}><ManagementPage /></ProtectedRoute>} />
           <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="*"             element={<Navigate to="/" replace />} />

@@ -5,6 +5,7 @@ import { useTimeEntries } from '../hooks/useTimeEntries';
 import { useReports }     from '../hooks/useReports';
 import { useToast }       from '../context/ToastContext';
 import { usersApi }       from '../api/users';
+import { teamsApi }       from '../api/teams';
 import { useProjects }    from '../hooks/useProjects';
 import { integrationsApi } from '../api/integrations';
 import { reportsApi }      from '../api/reports';
@@ -435,8 +436,9 @@ export default function ManagementPage() {
   const [savingId,    setSavingId]    = useState(null);
   const [roleMap,     setRoleMap]     = useState({});
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newUser,     setNewUser]     = useState({ fullName:'', email:'', password:'', role:'employee', team:'' });
+  const [newUser,     setNewUser]     = useState({ fullName:'', email:'', password:'', role:'employee', teamId:'' });
   const [addSaving,   setAddSaving]   = useState(false);
+  const [teams,       setTeams]       = useState([]);
 
   const loadUsers = async () => {
     setUL(true);
@@ -447,7 +449,12 @@ export default function ManagementPage() {
     } catch (err) { addToast(err.message,'error'); }
     finally { setUL(false); }
   };
-  useEffect(() => { if (mainTab==='users' && isAdmin) loadUsers(); }, [mainTab]);
+  useEffect(() => {
+    if (mainTab === 'users' && isAdmin) {
+      loadUsers();
+      teamsApi.list().then(setTeams).catch(() => {});
+    }
+  }, [mainTab]);
 
   const handleRoleChange = async (uid) => {
     setSavingId(uid);
@@ -459,15 +466,27 @@ export default function ManagementPage() {
     finally { setSavingId(null); }
   };
 
+  const selectedTeam = teams.find(t => String(t.id) === String(newUser.teamId));
+  const managerConflict = newUser.role === 'manager' && selectedTeam && selectedTeam.manager_id;
+
   const handleAddUser = async (e) => {
     e.preventDefault();
     if (!newUser.fullName||!newUser.email||!newUser.password) { addToast('נא למלא את כל השדות','error'); return; }
+    if (managerConflict) { addToast('לא ניתן להגדיר שני מנהלים לאותו צוות','error'); return; }
     setAddSaving(true);
     try {
-      await usersApi.create({ fullName:newUser.fullName, email:newUser.email, password:newUser.password, role:newUser.role, team:newUser.team||undefined });
+      await usersApi.create({
+        fullName: newUser.fullName,
+        email:    newUser.email,
+        password: newUser.password,
+        role:     newUser.role,
+        teamId:   newUser.teamId ? Number(newUser.teamId) : undefined,
+      });
       addToast(`משתמש "${newUser.fullName}" נוצר`, 'success');
-      setNewUser({ fullName:'', email:'', password:'', role:'employee', team:'' });
-      setShowAddForm(false); loadUsers();
+      setNewUser({ fullName:'', email:'', password:'', role:'employee', teamId:'' });
+      setShowAddForm(false);
+      loadUsers();
+      teamsApi.list().then(setTeams).catch(() => {});
     } catch (err) { addToast(err.message,'error'); }
     finally { setAddSaving(false); }
   };
@@ -1493,7 +1512,21 @@ export default function ManagementPage() {
                 </div>
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   <div style={{ flex:'1 1 180px' }}><label style={lbl}>סיסמה *</label><input type="password" value={newUser.password} onChange={e => setNewUser(p=>({...p,password:e.target.value}))} style={inp} placeholder="••••••••" /></div>
-                  <div style={{ flex:'1 1 120px' }}><label style={lbl}>צוות</label><input value={newUser.team} onChange={e => setNewUser(p=>({...p,team:e.target.value}))} style={inp} placeholder="פיתוח" /></div>
+                  <div style={{ flex:'1 1 150px' }}>
+                    <label style={lbl}>צוות</label>
+                    <select
+                      value={newUser.teamId}
+                      onChange={e => setNewUser(p=>({...p, teamId:e.target.value}))}
+                      style={{ ...inp, borderColor: managerConflict ? '#ef4444' : undefined }}
+                    >
+                      <option value="">ללא צוות</option>
+                      {teams.map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}{t.project_name ? ` — ${t.project_name}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div style={{ flex:'1 1 120px' }}>
                     <label style={lbl}>תפקיד</label>
                     <select value={newUser.role} onChange={e => setNewUser(p=>({...p,role:e.target.value}))} style={inp}>
@@ -1503,8 +1536,18 @@ export default function ManagementPage() {
                     </select>
                   </div>
                 </div>
-                <button type="submit" disabled={addSaving}
-                  style={{ alignSelf:'flex-start', padding:'9px 26px', borderRadius: T.radius, background: T.primary, color:'#fff', border:'none', fontSize:13, fontWeight:600, cursor:'pointer', opacity:addSaving?0.7:1, fontFamily:'inherit' }}>
+                {managerConflict && (
+                  <div style={{
+                    display:'flex', alignItems:'center', gap:8,
+                    padding:'10px 14px', borderRadius: T.radius,
+                    background:'#fef2f2', border:'1px solid #fecaca', color:'#b91c1c', fontSize:12,
+                  }}>
+                    <IcWarn s={14} />
+                    לא ניתן להגדיר שני מנהלים לאותו צוות — לצוות "{selectedTeam.name}" כבר יש מנהל ({selectedTeam.manager_name})
+                  </div>
+                )}
+                <button type="submit" disabled={addSaving || managerConflict}
+                  style={{ alignSelf:'flex-start', padding:'9px 26px', borderRadius: T.radius, background: T.primary, color:'#fff', border:'none', fontSize:13, fontWeight:600, cursor: managerConflict?'not-allowed':'pointer', opacity:(addSaving||managerConflict)?0.5:1, fontFamily:'inherit' }}>
                   {addSaving ? 'יוצר...' : 'צור משתמש'}
                 </button>
               </form>

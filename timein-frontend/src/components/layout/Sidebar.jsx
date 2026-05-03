@@ -45,6 +45,13 @@ const IcUsers = () => <Ic>
   <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
 </Ic>;
 
+const IcTeams = () => <Ic>
+  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+  <circle cx="9" cy="7" r="4"/>
+  <line x1="23" y1="11" x2="17" y2="11"/>
+  <line x1="20" y1="8" x2="20" y2="14"/>
+</Ic>;
+
 const IcLink = () => <Ic>
   <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
   <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
@@ -72,6 +79,7 @@ const NAV = [
   { to:'/report',       label:'דיווח שעות',        Icon: IcClock,      roles:['employee','manager','admin'] },
   { to:'/my-entries',   label:'הדיווחים שלי',      Icon: IcFileText,   roles:['employee','manager','admin'] },
   { to:'/projects',     label:'פרויקטים ומשימות',  Icon: IcFolder,     roles:['manager','admin'] },
+  { to:'/teams',        label:'ניהול צוותים',        Icon: IcTeams,      roles:['admin'] },
   { to:'/management',   label:'ניהול',              Icon: IcUsers,      roles:['manager','admin'] },
   { to:'/integrations', label:'אינטגרציות',         Icon: IcLink,       roles:['employee','manager','admin'] },
 ];
