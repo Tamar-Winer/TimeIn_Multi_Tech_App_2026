@@ -94,7 +94,7 @@ export default function ProjectsPage() {
   const inp = { border:'1px solid #e2e8f0', borderRadius:8, padding:'8px 10px', fontSize:13, width:'100%', boxSizing:'border-box', background:'#fff' };
   const lbl = { fontSize:12, color:'#64748b', fontWeight:500, display:'block', marginBottom:4 };
   const sel = { border:'1px solid #e2e8f0', borderRadius:8, padding:'7px 10px', fontSize:12, background:'#fff' };
-  const tabBtn = (a) => ({ padding:'8px 16px', borderRadius:8, border: a?'none':'1px solid #e2e8f0', background: a?'#6366f1':'#fff', color: a?'#fff':'#64748b', fontSize:13, cursor:'pointer', fontWeight: a?500:400 });
+  const tabBtn = (a) => ({ padding:'8px 16px', borderRadius:8, border: a?'none':'1px solid #e2e8f0', background: a?'#1E3A8A':'#fff', color: a?'#fff':'#64748b', fontSize:13, cursor:'pointer', fontWeight: a?500:400 });
   const actionBtn = (bg, color) => ({ padding:'4px 10px', borderRadius:6, background:bg, color, border:'none', fontSize:11, cursor:'pointer', fontWeight:500 });
 
   return (
@@ -102,8 +102,8 @@ export default function ProjectsPage() {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20, flexWrap:'wrap', gap:8 }}>
         <h2 style={{ fontSize:18, fontWeight:600, margin:0, color:'#1e293b' }}>פרויקטים ומשימות</h2>
         <div style={{ display:'flex', gap:8 }}>
-          {tab==='projects' && isAdmin   && <button onClick={openNewProject} style={{ padding:'8px 16px', borderRadius:8, background:'#6366f1', color:'#fff', border:'none', fontSize:13, fontWeight:500, cursor:'pointer' }}>+ פרויקט חדש</button>}
-          {tab==='tasks'    && isManager && <button onClick={openNewTask}    style={{ padding:'8px 16px', borderRadius:8, background:'#6366f1', color:'#fff', border:'none', fontSize:13, fontWeight:500, cursor:'pointer' }}>+ משימה חדשה</button>}
+          {tab==='projects' && isAdmin   && <button onClick={openNewProject} style={{ padding:'8px 16px', borderRadius:8, background:'#1E3A8A', color:'#fff', border:'none', fontSize:13, fontWeight:500, cursor:'pointer' }}>+ פרויקט חדש</button>}
+          {tab==='tasks'    && isManager && <button onClick={openNewTask}    style={{ padding:'8px 16px', borderRadius:8, background:'#1E3A8A', color:'#fff', border:'none', fontSize:13, fontWeight:500, cursor:'pointer' }}>+ משימה חדשה</button>}
         </div>
       </div>
 
@@ -111,7 +111,7 @@ export default function ProjectsPage() {
         <button style={tabBtn(tab==='projects')} onClick={() => setTab('projects')}> פרויקטים ({projects.length})</button>
         <button style={tabBtn(tab==='tasks')}    onClick={() => setTab('tasks')}>✓ משימות ({tasks.length})</button>
       </div>
-
+      
       {/* ═══ PROJECTS ═══ */}
       {tab === 'projects' && (
         <>
@@ -138,7 +138,7 @@ export default function ProjectsPage() {
                   </div>
                 )}
                 <div style={{ display:'flex', gap:10 }}>
-                  <button onClick={saveProject} disabled={saving} style={{ padding:'9px 24px', borderRadius:8, background:'#6366f1', color:'#fff', border:'none', fontSize:13, fontWeight:500, cursor:'pointer', opacity:saving?0.7:1 }}>{saving?'שומר...':'שמור'}</button>
+                  <button onClick={saveProject} disabled={saving} style={{ padding:'9px 24px', borderRadius:8, background:'#1E3A8A', color:'#fff', border:'none', fontSize:13, fontWeight:500, cursor:'pointer', opacity:saving?0.7:1 }}>{saving?'שומר...':'שמור'}</button>
                   <button onClick={() => setEditP(null)} style={{ padding:'9px 16px', borderRadius:8, background:'#f1f5f9', color:'#64748b', border:'1px solid #e2e8f0', fontSize:13, cursor:'pointer' }}>בטל</button>
                 </div>
               </div>
@@ -159,7 +159,7 @@ export default function ProjectsPage() {
                 {!isMobile && p.git_repository_name && <code style={{ fontSize:10, background:'#f1f5f9', padding:'2px 6px', borderRadius:4, whiteSpace:'nowrap' }}>{p.git_repository_name}</code>}
                 <span style={{ fontSize:11, color:S_COLOR[p.status], fontWeight:500, whiteSpace:'nowrap' }}>{S_LABEL[p.status]}</span>
                 <div style={{ display:'flex', gap:5, flexShrink:0 }}>
-                  <button onClick={() => { setTab('tasks'); setPFilter(String(p.id)); }} style={actionBtn('#e0e7ff','#4f46e5')}>משימות</button>
+                  <button onClick={() => { setTab('tasks'); setPFilter(String(p.id)); }} style={actionBtn('#e0e7ff','#1E3A8A')}>משימות</button>
                   {isManager && <button onClick={() => openEditProject(p)} style={actionBtn('#f1f5f9','#64748b')}>✏</button>}
                   {isAdmin   && <button onClick={() => toggleArchive(p)} style={actionBtn(p.status==='active'?'#fee2e2':'#f0fdf4', p.status==='active'?'#dc2626':'#16a34a')}>{p.status==='active'?'ארכב':'הפעל'}</button>}
                 </div>
@@ -211,7 +211,7 @@ export default function ProjectsPage() {
                   <div style={{ flex:'1 1 150px' }}><label style={lbl}>ClickUp Task ID</label><input value={tF.clickupTaskId} onChange={e=>setTF(t=>({...t,clickupTaskId:e.target.value}))} style={inp} placeholder="CU-T001" /></div>
                 </div>
                 <div style={{ display:'flex', gap:10 }}>
-                  <button onClick={saveTask} disabled={saving} style={{ padding:'9px 24px', borderRadius:8, background:'#6366f1', color:'#fff', border:'none', fontSize:13, fontWeight:500, cursor:'pointer', opacity:saving?0.7:1 }}>{saving?'שומר...':'שמור'}</button>
+                  <button onClick={saveTask} disabled={saving} style={{ padding:'9px 24px', borderRadius:8, background:'#1E3A8A', color:'#fff', border:'none', fontSize:13, fontWeight:500, cursor:'pointer', opacity:saving?0.7:1 }}>{saving?'שומר...':'שמור'}</button>
                   <button onClick={() => setEditT(null)} style={{ padding:'9px 16px', borderRadius:8, background:'#f1f5f9', color:'#64748b', border:'1px solid #e2e8f0', fontSize:13, cursor:'pointer' }}>בטל</button>
                 </div>
               </div>

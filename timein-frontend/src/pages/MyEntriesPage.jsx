@@ -28,7 +28,7 @@ export default function MyEntriesPage() {
     <div dir="rtl" style={{ fontFamily:'system-ui,sans-serif' }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:8 }}>
         <h2 style={{ fontSize:18, fontWeight:600, margin:0, color:'#1e293b' }}>הדיווחים שלי</h2>
-        <button onClick={() => navigate('/report')} style={{ padding:'7px 16px', borderRadius:8, background:'#6366f1', color:'#fff', border:'none', fontSize:13, fontWeight:500, cursor:'pointer' }}>
+        <button onClick={() => navigate('/report')} style={{ padding:'7px 16px', borderRadius:8, background:'#1E3A8A', color:'#fff', border:'none', fontSize:13, fontWeight:500, cursor:'pointer' }}>
           + דיווח חדש
         </button>
       </div>
@@ -66,12 +66,12 @@ export default function MyEntriesPage() {
               {e.related_commit_ids?.length > 0 && (
                 <div style={{ display:'flex', gap:4, flexWrap:'wrap', marginTop:3 }}>
                   {e.related_commit_ids.map(h => (
-                    <code key={h} style={{ fontSize:10, background:'#e0e7ff', color:'#4338ca', padding:'1px 5px', borderRadius:3 }}>{h.slice(0,7)}</code>
+                    <code key={h} style={{ fontSize:10, background:'#DBEAFE', color:'#1E3A8A', padding:'1px 5px', borderRadius:3 }}>{h.slice(0,7)}</code>
                   ))}
                 </div>
               )}
             </div>
-            <span style={{ fontWeight:600, color:'#6366f1', whiteSpace:'nowrap' }}>{fmt(e.duration_minutes)}</span>
+            <span style={{ fontWeight:600, color:'#1E3A8A', whiteSpace:'nowrap' }}>{fmt(e.duration_minutes)}</span>
             <Badge status={e.status} resubmitted={!!e.rejection_reason}/>
 
             {/* Action buttons — full width on mobile */}
