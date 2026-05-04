@@ -86,6 +86,12 @@ export default function ReportPage() {
   const handleCuClear = () => { setCuSelected(null); setForm(p => ({ ...p, clickUpTaskId: '' })); };
 
   useEffect(() => {
+    if (!id && projects.length === 1) {
+      setForm(p => p.projectId ? p : { ...p, projectId: String(projects[0].id) });
+    }
+  }, [projects]); // eslint-disable-line
+
+  useEffect(() => {
     const cf = location.state?.copyFrom;
     if (cf && !id) {
       setForm({ projectId:String(cf.project_id||''), taskId:String(cf.task_id||''), date:today,

@@ -7,7 +7,6 @@ router.get('/', authenticate, async (req, res, next) => {
   try {
     let rows;
     if (req.user.role === 'manager') {
-      // Manager sees only the project(s) linked to their team(s)
       ({ rows } = await pool.query(
         `SELECT p.*, u.full_name AS manager_name
          FROM projects p
@@ -16,9 +15,20 @@ router.get('/', authenticate, async (req, res, next) => {
          ORDER BY p.project_name`,
         [req.user.id]
       ));
+    } else if (req.user.role === 'employee') {
+      // Employee sees only the project their team is assigned to
+      ({ rows } = await pool.query(
+        `SELECT p.*, u.full_name AS manager_name
+         FROM projects p
+         LEFT JOIN users u ON u.id = p.manager_id
+         JOIN teams t ON t.project_id = p.id
+         JOIN users emp ON emp.team_id = t.id AND emp.id = $1
+         ORDER BY p.project_name`,
+        [req.user.id]
+      ));
     } else {
       ({ rows } = await pool.query(
-        'SELECT p.*,u.full_name AS manager_name FROM projects p LEFT JOIN users u ON u.id=p.manager_id ORDER BY p.project_name'
+        'SELECT p.*, u.full_name AS manager_name FROM projects p LEFT JOIN users u ON u.id = p.manager_id ORDER BY p.project_name'
       ));
     }
     res.json(rows);
