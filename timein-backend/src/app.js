@@ -11,6 +11,11 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(morgan('dev'));
+// Accept requests both with and without the /api prefix
+app.use((req, _res, next) => {
+  if (!req.path.startsWith('/api')) req.url = '/api' + req.url;
+  next();
+});
 app.use('/api/auth',         require('./routes/auth'));
 app.use('/api/auth',         require('./routes/googleAuth'));
 app.use('/api/users',        require('./routes/users'));
