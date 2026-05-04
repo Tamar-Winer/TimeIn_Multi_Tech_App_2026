@@ -1,6 +1,8 @@
 
 import axios from 'axios';
-const client = axios.create({ baseURL: process.env.REACT_APP_API_URL || '/api' });
+const raw = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
+const baseURL = raw ? (raw.endsWith('/api') ? raw : raw + '/api') : '/api';
+const client = axios.create({ baseURL });
 client.interceptors.request.use(cfg => {
   const t = localStorage.getItem('timein_token');
   if (t) cfg.headers.Authorization = 'Bearer ' + t;
