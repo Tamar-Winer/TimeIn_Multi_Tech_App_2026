@@ -8,15 +8,21 @@ router.get('/', authenticate, requireRole('manager', 'admin'), async (req, res, 
   try {
     const baseQuery = `
       SELECT t.id, t.name, t.project_id, t.manager_id, t.created_at, t.updated_at,
-             p.project_name,
              u.full_name AS manager_name,
-             COUNT(m.id) FILTER (WHERE m.id IS NOT NULL) AS member_count
+             (SELECT COUNT(*) FROM users WHERE team_id = t.id) AS member_count,
+             (
+               SELECT COALESCE(
+                 json_agg(json_build_object('id', tp.project_id, 'name', p.project_name)
+                          ORDER BY p.project_name),
+                 '[]'::json
+               )
+               FROM team_projects tp
+               JOIN projects p ON p.id = tp.project_id
+               WHERE tp.team_id = t.id
+             ) AS projects
       FROM teams t
-      LEFT JOIN projects p ON p.id = t.project_id
-      LEFT JOIN users u    ON u.id = t.manager_id
-      LEFT JOIN users m    ON m.team_id = t.id
+      LEFT JOIN users u ON u.id = t.manager_id
       %WHERE%
-      GROUP BY t.id, p.project_name, u.full_name
       ORDER BY t.name
     `;
     let rows;
@@ -140,6 +146,50 @@ router.delete('/:id/members/:userId', authenticate, requireRole('admin'), async 
     );
     if (!rows.length) return res.status(400).json({ error: 'המשתמש אינו בצוות זה' });
     res.json({ removed: rows[0].id });
+  } catch (err) { next(err); }
+});
+
+// GET projects for a team
+router.get('/:id/projects', authenticate, requireRole('manager', 'admin'), async (req, res, next) => {
+  try {
+    if (req.user.role === 'manager') {
+      const { rows: check } = await pool.query(
+        'SELECT id FROM teams WHERE id = $1 AND manager_id = $2',
+        [req.params.id, req.user.id]
+      );
+      if (!check.length) return res.status(403).json({ error: 'אין גישה לצוות זה' });
+    }
+    const { rows } = await pool.query(
+      `SELECT p.id, p.project_name AS name, p.status
+       FROM team_projects tp JOIN projects p ON p.id = tp.project_id
+       WHERE tp.team_id = $1 ORDER BY p.project_name`,
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
+// POST add a project to a team — admin only
+router.post('/:id/projects', authenticate, requireRole('admin'), async (req, res, next) => {
+  const { projectId } = req.body;
+  if (!projectId) return res.status(400).json({ error: 'projectId הוא שדה חובה' });
+  try {
+    await pool.query(
+      'INSERT INTO team_projects (team_id, project_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [req.params.id, projectId]
+    );
+    res.json({ teamId: Number(req.params.id), projectId: Number(projectId) });
+  } catch (err) { next(err); }
+});
+
+// DELETE remove a project from a team — admin only
+router.delete('/:id/projects/:projectId', authenticate, requireRole('admin'), async (req, res, next) => {
+  try {
+    await pool.query(
+      'DELETE FROM team_projects WHERE team_id = $1 AND project_id = $2',
+      [req.params.id, req.params.projectId]
+    );
+    res.json({ removed: true });
   } catch (err) { next(err); }
 });
 

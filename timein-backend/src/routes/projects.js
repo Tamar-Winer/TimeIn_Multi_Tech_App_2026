@@ -7,22 +7,24 @@ router.get('/', authenticate, async (req, res, next) => {
   try {
     let rows;
     if (req.user.role === 'manager') {
+      // Manager sees all projects assigned to their team(s) via team_projects
       ({ rows } = await pool.query(
-        `SELECT p.*, u.full_name AS manager_name
+        `SELECT DISTINCT p.*, u.full_name AS manager_name
          FROM projects p
          LEFT JOIN users u ON u.id = p.manager_id
-         WHERE p.id IN (SELECT project_id FROM teams WHERE manager_id = $1 AND project_id IS NOT NULL)
+         JOIN team_projects tp ON tp.project_id = p.id
+         JOIN teams t ON t.id = tp.team_id AND t.manager_id = $1
          ORDER BY p.project_name`,
         [req.user.id]
       ));
     } else if (req.user.role === 'employee') {
-      // Employee sees only the project their team is assigned to
+      // Employee sees only projects their team is assigned to via team_projects
       ({ rows } = await pool.query(
-        `SELECT p.*, u.full_name AS manager_name
+        `SELECT DISTINCT p.*, u.full_name AS manager_name
          FROM projects p
          LEFT JOIN users u ON u.id = p.manager_id
-         JOIN teams t ON t.project_id = p.id
-         JOIN users emp ON emp.team_id = t.id AND emp.id = $1
+         JOIN team_projects tp ON tp.project_id = p.id
+         JOIN users emp ON emp.team_id = tp.team_id AND emp.id = $1
          ORDER BY p.project_name`,
         [req.user.id]
       ));

@@ -13,7 +13,7 @@ const ROLE_HE = { employee: 'עובד', manager: 'מנהל', admin: 'מנהל מ
 const inp = { border:'1px solid #e2e8f0', borderRadius:8, padding:'8px 10px', fontSize:13, width:'100%', boxSizing:'border-box', background:'#fff' };
 const lbl = { fontSize:12, color:'#64748b', fontWeight:500, display:'block', marginBottom:4 };
 
-const emptyForm = { name:'', projectId:'', managerId:'' };
+const emptyForm = { name:'', managerId:'' };
 
 export default function TeamsPage() {
   const { addToast }  = useToast();
@@ -25,16 +25,15 @@ export default function TeamsPage() {
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
 
-  // Team form state
-  const [editTeam, setEditTeam] = useState(null); // null | 'new' | team object
+  const [editTeam, setEditTeam] = useState(null);
   const [form,     setForm]     = useState(emptyForm);
 
-  // Expanded members panel
-  const [expandedId, setExpandedId]   = useState(null);
-  const [members,    setMembers]       = useState({});   // { [teamId]: [...] }
-  const [loadingMem, setLoadingMem]   = useState(false);
-  const [addingUser, setAddingUser]   = useState('');
-  const [deletingId, setDeletingId]   = useState(null);
+  const [expandedId,   setExpandedId]   = useState(null);
+  const [members,      setMembers]      = useState({});
+  const [loadingMem,   setLoadingMem]   = useState(false);
+  const [addingUser,   setAddingUser]   = useState('');
+  const [addingProject,setAddingProject]= useState('');
+  const [deletingId,   setDeletingId]   = useState(null);
 
   const loadTeams = useCallback(async () => {
     setLoading(true);
@@ -55,6 +54,8 @@ export default function TeamsPage() {
   const toggleExpand = async (teamId) => {
     if (expandedId === teamId) { setExpandedId(null); return; }
     setExpandedId(teamId);
+    setAddingUser('');
+    setAddingProject('');
     if (members[teamId]) return;
     setLoadingMem(true);
     try {
@@ -74,7 +75,7 @@ export default function TeamsPage() {
   // ── Team CRUD ─────────────────────────────────────────────────────
   const openNew  = () => { setForm(emptyForm); setEditTeam('new'); };
   const openEdit = (t) => {
-    setForm({ name: t.name, projectId: String(t.project_id || ''), managerId: String(t.manager_id || '') });
+    setForm({ name: t.name, managerId: String(t.manager_id || '') });
     setEditTeam(t);
   };
 
@@ -84,8 +85,7 @@ export default function TeamsPage() {
     try {
       const payload = {
         name:      form.name.trim(),
-        projectId: form.projectId  ? Number(form.projectId)  : null,
-        managerId: form.managerId  ? Number(form.managerId)  : null,
+        managerId: form.managerId ? Number(form.managerId) : null,
       };
       if (editTeam === 'new') {
         await teamsApi.create(payload);
@@ -133,16 +133,40 @@ export default function TeamsPage() {
     } catch (err) { addToast(err.message || 'שגיאה בהסרה', 'error'); }
   };
 
-  // ── Users not yet in this team ────────────────────────────────────
+  // ── Project management ────────────────────────────────────────────
+  const addProject = async (teamId) => {
+    if (!addingProject) return;
+    try {
+      await teamsApi.addProject(teamId, Number(addingProject));
+      setAddingProject('');
+      await loadTeams();
+      addToast('פרויקט נוסף לצוות', 'success');
+    } catch (err) { addToast(err.message || 'שגיאה בהוספת פרויקט', 'error'); }
+  };
+
+  const removeProject = async (teamId, projectId) => {
+    try {
+      await teamsApi.removeProject(teamId, projectId);
+      await loadTeams();
+      addToast('פרויקט הוסר מהצוות', 'success');
+    } catch (err) { addToast(err.message || 'שגיאה בהסרת פרויקט', 'error'); }
+  };
+
+  // ── Helpers ────────────────────────────────────────────────────────
   const availableToAdd = (teamId) => {
     const teamMemberIds = new Set((members[teamId] || []).map(m => m.id));
     return allUsers.filter(u => u.is_active && !teamMemberIds.has(u.id));
   };
 
+  const availableProjectsToAdd = (team) => {
+    const assigned = new Set((team.projects || []).map(p => p.id));
+    return projects.filter(p => p.status === 'active' && !assigned.has(p.id));
+  };
+
   // ── Styles ────────────────────────────────────────────────────────
   const btn = (bg, fg, extra = {}) => ({
     padding:'7px 14px', borderRadius:8, background:bg, color:fg,
-    border:'none', fontSize:12, fontWeight:500, cursor:'pointer', ...extra,
+    border:'none', fontSize:12, fontWeight:500, cursor:'pointer', fontFamily:'inherit', ...extra,
   });
 
   const badge = (bg, fg) => ({
@@ -179,19 +203,6 @@ export default function TeamsPage() {
                 />
               </div>
               <div style={{ flex:'1 1 160px' }}>
-                <label style={lbl}>פרויקט אחראי</label>
-                <select
-                  value={form.projectId}
-                  onChange={e => setForm(f => ({ ...f, projectId:e.target.value }))}
-                  style={inp}
-                >
-                  <option value="">ללא פרויקט</option>
-                  {projects.filter(p => p.status === 'active').map(p =>
-                    <option key={p.id} value={p.id}>{p.project_name}</option>
-                  )}
-                </select>
-              </div>
-              <div style={{ flex:'1 1 160px' }}>
                 <label style={lbl}>מנהל צוות</label>
                 <select
                   value={form.managerId}
@@ -205,6 +216,11 @@ export default function TeamsPage() {
                 </select>
               </div>
             </div>
+            {editTeam === 'new' && (
+              <div style={{ fontSize:11, color:'#94a3b8', padding:'6px 0' }}>
+                לאחר יצירת הצוות ניתן להוסיף פרויקטים ועובדים דרך כפתור "פרטים"
+              </div>
+            )}
             <div style={{ display:'flex', gap:10 }}>
               <button onClick={saveTeam} disabled={saving} style={btn('#1E3A8A','#fff',{ opacity:saving?0.7:1 })}>
                 {saving ? 'שומר...' : 'שמור'}
@@ -230,41 +246,41 @@ export default function TeamsPage() {
         </Card>
       ) : (
         teams.map(team => {
-          const isExpanded = expandedId === team.id;
-          const teamMembers = members[team.id] || [];
-          const available   = availableToAdd(team.id);
+          const isExpanded    = expandedId === team.id;
+          const teamMembers   = members[team.id] || [];
+          const teamProjects  = team.projects || [];
+          const available     = availableToAdd(team.id);
+          const availableProj = availableProjectsToAdd(team);
 
           return (
             <Card key={team.id} style={{ marginBottom:12 }}>
               {/* ── Team header row ── */}
               <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', gap:10 }}>
-                {/* Name & badges */}
                 <div style={{ flex:'1 1 200px', minWidth:0 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
                     <span style={{ fontSize:14, fontWeight:700, color:'#1e293b' }}>{team.name}</span>
-                    {team.project_name && (
-                      <span style={badge('#dbeafe','#1d4ed8')}>{team.project_name}</span>
-                    )}
-                    {!team.project_name && (
-                      <span style={badge('#f1f5f9','#94a3b8')}>ללא פרויקט</span>
-                    )}
+                    {teamProjects.length > 0
+                      ? teamProjects.map(p => (
+                          <span key={p.id} style={badge('#dbeafe','#1d4ed8')}>{p.name}</span>
+                        ))
+                      : <span style={badge('#f1f5f9','#94a3b8')}>ללא פרויקטים</span>
+                    }
                   </div>
                   <div style={{ fontSize:11, color:'#94a3b8', marginTop:4 }}>
-                    {team.manager_name
-                      ? `מנהל: ${team.manager_name}`
-                      : 'ללא מנהל מוגדר'}
+                    {team.manager_name ? `מנהל: ${team.manager_name}` : 'ללא מנהל מוגדר'}
                     {' · '}
                     {Number(team.member_count)} עובדים
+                    {' · '}
+                    {teamProjects.length} פרויקטים
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div style={{ display:'flex', gap:6, flexShrink:0 }}>
                   <button
                     onClick={() => toggleExpand(team.id)}
                     style={btn(isExpanded ? '#e0e7ff' : '#f8fafc', isExpanded ? '#1E3A8A' : '#64748b', { border:`1px solid ${isExpanded ? '#c7d2fe':'#e2e8f0'}` })}
                   >
-                    {isExpanded ? 'סגור ▲' : 'עובדים ▼'}
+                    {isExpanded ? 'סגור ▲' : 'פרטים ▼'}
                   </button>
                   <button onClick={() => openEdit(team)} style={btn('#f1f5f9','#64748b',{ border:'1px solid #e2e8f0' })}>✏ ערוך</button>
                   <button
@@ -277,77 +293,128 @@ export default function TeamsPage() {
                 </div>
               </div>
 
-              {/* ── Members panel ── */}
+              {/* ── Expanded panel ── */}
               {isExpanded && (
                 <div style={{ marginTop:14, borderTop:'1px solid #f1f5f9', paddingTop:14 }}>
-                  {loadingMem && !teamMembers.length ? (
-                    <Spinner />
-                  ) : (
+                  {loadingMem && !teamMembers.length ? <Spinner /> : (
                     <>
-                      {/* Member list */}
-                      {teamMembers.length === 0 ? (
-                        <div style={{ fontSize:12, color:'#94a3b8', marginBottom:12 }}>אין עובדים בצוות זה עדיין</div>
-                      ) : (
-                        <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:14 }}>
-                          {teamMembers.map(m => (
-                            <div key={m.id} style={{
-                              display:'flex', alignItems:'center', gap:10,
-                              padding:'7px 12px', borderRadius:8,
-                              background:'#f8fafc', border:'1px solid #f1f5f9',
-                            }}>
-                              <div style={{
-                                width:30, height:30, borderRadius:'50%',
-                                background:'#e0e7ff', display:'flex', alignItems:'center',
-                                justifyContent:'center', fontSize:13, fontWeight:700, color:'#1E3A8A',
-                                flexShrink:0,
-                              }}>
-                                {m.full_name?.[0]?.toUpperCase() || '?'}
-                              </div>
-                              <div style={{ flex:1, minWidth:0 }}>
-                                <div style={{ fontSize:13, fontWeight:500, color:'#1e293b' }}>{m.full_name}</div>
-                                <div style={{ fontSize:11, color:'#94a3b8' }}>
-                                  {m.email} · {ROLE_HE[m.role] || m.role}
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => removeMember(team.id, m.id)}
-                                style={btn('transparent','#ef4444',{ border:'none', padding:'4px 8px', fontSize:13 })}
-                                title="הסר מהצוות"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
+                      {/* ── Projects section ── */}
+                      <div style={{ marginBottom:18 }}>
+                        <div style={{ fontSize:12, fontWeight:700, color:'#475569', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
+                          <span>📁</span> פרויקטים ({teamProjects.length})
                         </div>
-                      )}
 
-                      {/* Add member */}
-                      {available.length > 0 && (
-                        <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
-                          <select
-                            value={addingUser}
-                            onChange={e => setAddingUser(e.target.value)}
-                            style={{ ...inp, flex:'1 1 180px', width:'auto', fontSize:12 }}
-                          >
-                            <option value="">בחר עובד להוספה</option>
-                            {available.map(u => (
-                              <option key={u.id} value={u.id}>
-                                {u.full_name} ({ROLE_HE[u.role] || u.role})
-                              </option>
+                        {teamProjects.length === 0 ? (
+                          <div style={{ fontSize:12, color:'#94a3b8', marginBottom:10 }}>אין פרויקטים משויכים לצוות זה</div>
+                        ) : (
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:10 }}>
+                            {teamProjects.map(p => (
+                              <div key={p.id} style={{
+                                display:'flex', alignItems:'center', gap:6,
+                                padding:'5px 10px', borderRadius:8,
+                                background:'#eff6ff', border:'1px solid #bfdbfe',
+                              }}>
+                                <span style={{ fontSize:12, fontWeight:600, color:'#1d4ed8' }}>{p.name}</span>
+                                <button
+                                  onClick={() => removeProject(team.id, p.id)}
+                                  style={{ background:'none', border:'none', cursor:'pointer', color:'#94a3b8', fontSize:13, lineHeight:1, padding:0 }}
+                                  title="הסר פרויקט"
+                                >✕</button>
+                              </div>
                             ))}
-                          </select>
-                          <button
-                            onClick={() => addMember(team.id)}
-                            disabled={!addingUser}
-                            style={btn('#1E3A8A','#fff',{ opacity:!addingUser?0.5:1 })}
-                          >
-                            + הוסף
-                          </button>
+                          </div>
+                        )}
+
+                        {availableProj.length > 0 && (
+                          <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+                            <select
+                              value={addingProject}
+                              onChange={e => setAddingProject(e.target.value)}
+                              style={{ ...inp, flex:'1 1 180px', width:'auto', fontSize:12 }}
+                            >
+                              <option value="">בחר פרויקט להוספה</option>
+                              {availableProj.map(p => (
+                                <option key={p.id} value={p.id}>{p.project_name}</option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => addProject(team.id)}
+                              disabled={!addingProject}
+                              style={btn('#1E3A8A','#fff',{ opacity:!addingProject?0.5:1 })}
+                            >
+                              + הוסף פרויקט
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── Members section ── */}
+                      <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:14 }}>
+                        <div style={{ fontSize:12, fontWeight:700, color:'#475569', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
+                          <span>👤</span> עובדים ({Number(team.member_count)})
                         </div>
-                      )}
-                      {available.length === 0 && (
-                        <div style={{ fontSize:12, color:'#94a3b8' }}>כל העובדים הפעילים כבר בצוות</div>
-                      )}
+
+                        {teamMembers.length === 0 ? (
+                          <div style={{ fontSize:12, color:'#94a3b8', marginBottom:12 }}>אין עובדים בצוות זה עדיין</div>
+                        ) : (
+                          <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:14 }}>
+                            {teamMembers.map(m => (
+                              <div key={m.id} style={{
+                                display:'flex', alignItems:'center', gap:10,
+                                padding:'7px 12px', borderRadius:8,
+                                background:'#f8fafc', border:'1px solid #f1f5f9',
+                              }}>
+                                <div style={{
+                                  width:30, height:30, borderRadius:'50%',
+                                  background:'#e0e7ff', display:'flex', alignItems:'center',
+                                  justifyContent:'center', fontSize:13, fontWeight:700, color:'#1E3A8A',
+                                  flexShrink:0,
+                                }}>
+                                  {m.full_name?.[0]?.toUpperCase() || '?'}
+                                </div>
+                                <div style={{ flex:1, minWidth:0 }}>
+                                  <div style={{ fontSize:13, fontWeight:500, color:'#1e293b' }}>{m.full_name}</div>
+                                  <div style={{ fontSize:11, color:'#94a3b8' }}>
+                                    {m.email} · {ROLE_HE[m.role] || m.role}
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => removeMember(team.id, m.id)}
+                                  style={btn('transparent','#ef4444',{ border:'none', padding:'4px 8px', fontSize:13 })}
+                                  title="הסר מהצוות"
+                                >✕</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {available.length > 0 && (
+                          <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+                            <select
+                              value={addingUser}
+                              onChange={e => setAddingUser(e.target.value)}
+                              style={{ ...inp, flex:'1 1 180px', width:'auto', fontSize:12 }}
+                            >
+                              <option value="">בחר עובד להוספה</option>
+                              {available.map(u => (
+                                <option key={u.id} value={u.id}>
+                                  {u.full_name} ({ROLE_HE[u.role] || u.role})
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => addMember(team.id)}
+                              disabled={!addingUser}
+                              style={btn('#1E3A8A','#fff',{ opacity:!addingUser?0.5:1 })}
+                            >
+                              + הוסף עובד
+                            </button>
+                          </div>
+                        )}
+                        {available.length === 0 && (
+                          <div style={{ fontSize:12, color:'#94a3b8' }}>כל העובדים הפעילים כבר בצוות</div>
+                        )}
+                      </div>
                     </>
                   )}
                 </div>

@@ -9,18 +9,25 @@ router.get('/', authenticate, async (req, res, next) => {
   if (req.user.role === 'employee') {
     params.push(req.user.id); conds.push('te.user_id=$' + params.length);
   } else if (req.user.role === 'manager') {
-    // Manager: scope to team members and team project(s)
+    // Manager: scope to team members and team projects (via team_projects)
     const { rows: teamRows } = await pool.query(
-      'SELECT id, project_id FROM teams WHERE manager_id = $1',
+      'SELECT id FROM teams WHERE manager_id = $1',
       [req.user.id]
     );
     if (teamRows.length) {
-      const teamIds     = teamRows.map(r => r.id);
-      const teamProjIds = teamRows.map(r => r.project_id).filter(Boolean);
-      params.push(teamIds);     conds.push(`te.user_id IN (SELECT id FROM users WHERE team_id = ANY($${params.length}::int[]))`);
-      if (teamProjIds.length) { params.push(teamProjIds); conds.push(`te.project_id = ANY($${params.length}::int[])`); }
+      const teamIds = teamRows.map(r => r.id);
+      params.push(teamIds);
+      conds.push(`te.user_id IN (SELECT id FROM users WHERE team_id = ANY($${params.length}::int[]))`);
+      const { rows: tpRows } = await pool.query(
+        'SELECT project_id FROM team_projects WHERE team_id = ANY($1::int[])',
+        [teamIds]
+      );
+      const teamProjIds = tpRows.map(r => r.project_id);
+      if (teamProjIds.length) {
+        params.push(teamProjIds);
+        conds.push(`te.project_id = ANY($${params.length}::int[])`);
+      }
     } else {
-      // Manager with no team: return nothing
       conds.push('FALSE');
     }
     if (userId)    { params.push(userId);    conds.push('te.user_id=$' + params.length); }
