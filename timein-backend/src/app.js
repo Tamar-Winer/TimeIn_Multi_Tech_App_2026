@@ -6,15 +6,7 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors({
-  origin: (origin, cb) => {
-    // allow requests with no origin (mobile apps, curl, etc.)
-    if (!origin) return cb(null, true);
-    const allowed = (process.env.FRONTEND_URL || '').split(',').map(s => s.trim()).filter(Boolean);
-    if (allowed.length === 0 || allowed.some(u => origin.startsWith(u))) return cb(null, true);
-    // in production also allow any vercel.app subdomain
-    if (process.env.NODE_ENV === 'production' && origin.includes('.vercel.app')) return cb(null, true);
-    cb(null, true); // permissive fallback for development
-  },
+  origin: true,
   credentials: true,
 }));
 app.use(express.json());
