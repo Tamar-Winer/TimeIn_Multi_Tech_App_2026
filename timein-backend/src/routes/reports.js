@@ -153,7 +153,7 @@ router.get('/by-project', authenticate, requireRole('manager','admin'), async (r
     let memberFilter = '';
     if (memberIds !== null) {
       vals.push(memberIds);
-      memberFilter = `AND te.user_id = ANY($${vals.length}::int[])`;
+      memberFilter = `te.user_id = ANY($${vals.length}::int[])`;
     }
 
     const joinExtra = [...conds, memberFilter].filter(Boolean).join(' AND ');
@@ -235,7 +235,7 @@ router.get('/by-task', authenticate, requireRole('manager','admin'), async (req,
     let memberFilter = '';
     if (memberIds !== null) {
       vals.push(memberIds);
-      memberFilter = `AND te.user_id = ANY($${vals.length}::int[])`;
+      memberFilter = `te.user_id = ANY($${vals.length}::int[])`;
     }
 
     const joinExtra = [...conds, memberFilter].filter(Boolean).join(' AND ');
@@ -314,7 +314,7 @@ router.get('/estimate-vs-actual', authenticate, requireRole('manager','admin'), 
     let memberFilter = '';
     if (memberIds !== null) {
       vals.push(memberIds);
-      memberFilter = `AND te.user_id = ANY($${vals.length}::int[])`;
+      memberFilter = `te.user_id = ANY($${vals.length}::int[])`;
     }
 
     const joinExtra = [...conds, memberFilter].filter(Boolean).join(' AND ');
