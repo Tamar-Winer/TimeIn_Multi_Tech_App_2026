@@ -43,6 +43,22 @@ async function runMigrations() {
       )
     `);
 
+    // team_projects junction table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS team_projects (
+        team_id    INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+        project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        PRIMARY KEY (team_id, project_id)
+      )
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_team_projects_team    ON team_projects(team_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_team_projects_project ON team_projects(project_id)`);
+    await client.query(`
+      INSERT INTO team_projects (team_id, project_id)
+      SELECT id, project_id FROM teams WHERE project_id IS NOT NULL
+      ON CONFLICT DO NOTHING
+    `);
+
     console.log('✓ Migrations applied');
   } finally {
     client.release();
