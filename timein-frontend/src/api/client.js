@@ -1,7 +1,6 @@
 
 import axios from 'axios';
-const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const baseURL = isDev ? (process.env.REACT_APP_API_URL || '/api') : '/api';
+const baseURL = process.env.REACT_APP_API_URL || '/api';
 const client = axios.create({ baseURL });
 client.interceptors.request.use(cfg => {
   const t = localStorage.getItem('timein_token');
