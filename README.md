@@ -40,6 +40,7 @@ Hours logged  →  Project context  →  Git commits  →  ClickUp tasks
      ↓                ↓                   ↓                ↓
   Audit trail    Manager view       Code linkage      Task sync
 ```
+<img width="1917" height="921" alt="20260518174531228" src="https://github.com/user-attachments/assets/cdf5c4a8-a314-4a23-a54f-153266320058" />
 
 ---
 
