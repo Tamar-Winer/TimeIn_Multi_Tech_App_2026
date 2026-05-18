@@ -1,80 +1,289 @@
-# 🕒 TimeIn - Smart Work Hours Management System
+<div align="center">
 
-![Version](https://img.shields.io/badge/version-1.0.0--MVP-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=32&duration=2800&pause=2000&color=6366F1&center=true&vCenter=true&width=600&lines=TimeIn+%E2%8F%B1;Track+What+Matters." alt="TimeIn" />
 
-[cite_start]**TimeIn** היא מערכת מתקדמת לניהול, דיווח ובקרה של שעות עבודה, המיועדת לספק פתרון מקצה לקצה עבור צוותי פיתוח[cite: 1, 2]. [cite_start]המערכת מייצרת סנכרון מושלם בין דיווחי השעות בפועל לבין תוצרי העבודה במערכות הניהול והפיתוח הארגוניות[cite: 21, 22].
+<br/>
 
----
+**A clean, developer-friendly time tracking platform built for modern engineering teams.**  
+Log hours by project, link work to Git commits and ClickUp tasks, and give managers the visibility they actually need.
 
-## 🚀 חזון הפרויקט
-[cite_start]מטרת המערכת היא להחליף את דיווחי השעות הידניים והמיושנים בכלי חכם המשלב נתונים בזמן אמת מתוך סביבת העבודה של המפתח[cite: 3, 4]. המערכת מאפשרת:
-- [cite_start]**שקיפות מלאה:** חיבור ישיר בין שעות עבודה ל-Commits ב-Git ולמשימות ב-ClickUp[cite: 9, 27].
-- [cite_start]**אמינות נתונים:** צמצום טעויות אנוש באמצעות טיימרים חכמים וזיהוי אוטומטי של פעילות[cite: 13, 232].
-- [cite_start]**בקרה ניהולית:** דוחות מתקדמים לניתוח יעילות וזיהוי חריגות[cite: 49, 213].
+<br/>
 
----
+[![Status](https://img.shields.io/badge/status-MVP-6366f1?style=for-the-badge&logo=rocket&logoColor=white)](.)
+[![License](https://img.shields.io/badge/license-MIT-10b981?style=for-the-badge)](.)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-f59e0b?style=for-the-badge)](.)
+[![Made with ❤️](https://img.shields.io/badge/made%20with-❤️-ef4444?style=for-the-badge)](.)
 
-## 🛠 הטכנולוגיות בשימוש (Tech Stack)
+<br/>
 
-### Backend (Node.js & Express)
-- [cite_start]**Runtime:** Node.js [cite: 137]
-- **API:** RESTful API המספק שירותים מאובטחים לניהול משתמשים, פרויקטים ודיווחי שעות.
-- [cite_start]**Database:** PostgreSQL/MongoDB (ניתן להתאמה) לניהול ישויות המערכת: משתמשים, משימות, פרויקטים ודיווחי שעות[cite: 62].
-- [cite_start]**Integrations:** עבודה מול ה-APIs של GitHub/GitLab ו-ClickUp[cite: 223, 242].
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-20232a?style=flat-square&logo=react&logoColor=61DAFB)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![Neon](https://img.shields.io/badge/Neon-00E5BF?style=flat-square&logo=neon&logoColor=black)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
+![Gemini](https://img.shields.io/badge/Gemini_AI-8E75B2?style=flat-square&logo=google-gemini&logoColor=white)
+![ClickUp](https://img.shields.io/badge/ClickUp-7B68EE?style=flat-square&logo=clickup&logoColor=white)
+![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white)
 
-### Frontend (React.js)
-- **Framework:** React עם שימוש ב-Hooks ו-Context API לניהול מצב גלובלי.
-- [cite_start]**UI/UX:** עיצוב מודרני המותאם לדשבורד ניהולי וממשק דיווח מהיר לעובד[cite: 257, 275].
-- **State Management:** Redux Toolkit או React Query לסנכרון נתונים מול השרת.
-
----
-
-## 📋 תכונות עיקריות (Key Features)
-
-### 👤 ממשק עובד (Employee Suite)
-- [cite_start]**דיווח גמיש:** הזנה ידנית של שעות או שימוש בטיימר (Start/Pause/Stop)[cite: 152, 159].
-- [cite_start]**חיבור לתוצרים:** קישור דיווח שעה ישירות ל-Commit Hash או ל-Task ID מ-ClickUp[cite: 40, 108].
-- [cite_start]**מרכז בקרה אישי:** צפייה בסיכומי שעות יומיים, שבועיים וחודשיים[cite: 169, 171].
-
-### 👨‍💼 ממשק מנהל (Management Suite)
-- [cite_start]**Dashboard ניהולי:** צפייה בסטטוס הצוות בזמן אמת - מי עובד על מה ובאיזה פרויקט[cite: 176, 179].
-- [cite_start]**אישור דיווחים:** מנגנון Workflow לאישור (Approve) או דחייה (Reject) של דיווחי שעות[cite: 51, 107].
-- [cite_start]**מנוע דוחות:** הפקת דוחות חריגות, ניצולת פרויקטים וסיכומי שעות לפי עובד[cite: 193, 213].
-
-### ⚙️ אינטגרציות (Deep Integrations)
-- [cite_start]**Git Sync:** משיכת קומיטים לפי אימייל המשתמש והצגת פערים בין דיווח השעות לפעילות הקוד בפועל[cite: 223, 233].
-- [cite_start]**ClickUp Connectivity:** סנכרון משימות בזמן אמת מאפשר בחירת משימה מתוך רשימה קיימת בעת הדיווח[cite: 242, 244].
+</div>
 
 ---
 
-## 🏗 מבנה הנתונים (Core Entities)
-המערכת מבוססת על ארכיטקטורת נתונים חזקה הכוללת:
-- [cite_start]**User:** ניהול תפקידים (Admin, Manager, Employee)[cite: 63, 69].
-- [cite_start]**Project:** ניהול פרויקטים עם קישור למאגרי קוד ולוחות משימות[cite: 72, 79].
-- [cite_start]**TimeEntry:** הישות המרכזית הכוללת זמני התחלה/סיום, משך זמן, סוג עבודה וקישורים חיצוניים[cite: 92, 106].
+## ✨ What is TimeIn?
+
+TimeIn is a **work-hour reporting system** designed around the way developers actually work — by project, by task, and in relation to real code activity. It's not just a stopwatch. It's a bridge between your team's hours and their output.
+
+```
+Hours logged  →  Project context  →  Git commits  →  ClickUp tasks
+     ↓                ↓                   ↓                ↓
+  Audit trail    Manager view       Code linkage      Task sync
+```
 
 ---
 
-## 🗺 מפת דרכים (Roadmap - MVP & Beyond)
+## 🎯 Core Features
 
-### [cite_start]שלב 1: MVP (מיושם) [cite: 281]
-- ניהול משתמשים והרשאות בסיסי.
-- דיווח שעות ידני וטיימר פשוט.
-- חיבור בסיסי ל-ClickUp ו-Git (הזנת IDs ידנית).
-- דוחות שעות בסיסיים.
+### ⏱ Time Entry
+- **Manual logging** — date, project, task, start/end or total duration
+- **Live timer** — start/pause/stop with auto-generated time entry on completion
+- **Draft & submit** workflow — save entries before sending for approval
+- Overlap detection and validation built-in
 
-### [cite_start]שלב 2: Next Steps (בתכנון) [cite: 282, 283]
-- **AI Suggestions:** הצעה אוטומטית לדיווחי שעות על בסיס פעילות ב-Git.
-- **Mobile App:** אפליקציה ייעודית לדיווח מהיר מהשטח.
-- **Payroll Integration:** חיבור למערכות שכר וייצוא נתונים ל-CSV/Excel.
-- **Slack/Teams Bot:** קבלת התראות ודיווח שעות ישירות מהצ'אט הארגוני.
+### 📊 Employee Dashboard
+- Today / this week / this month summary at a glance
+- Breakdown by project and task
+- Recent entries with quick edit/copy/delete
+- Active timer always visible
+
+### 🧑‍💼 Manager View
+- Filter by employee, project, task, or date range
+- Per-project and per-task hour breakdown
+- Daily drill-down for any team member
+- Anomaly detection: long entries, missing days, overlaps
+
+### 🔗 GitHub Integration *(Phase 2)*
+Pulls commits from **GitHub** and matches them to time entries by:
+- Task ID in commit message
+- Branch name
+- Author email
+
+> Commits are a supporting signal, not a replacement for time reports.
+
+### 📋 ClickUp Integration *(Phase 2)*
+- Sync tasks from ClickUp into TimeIn
+- Select a ClickUp task when logging hours
+- Store `ClickUpTaskId` directly in each `TimeEntry`
+- Future: compare estimated vs. actual time
 
 ---
 
-## 🔧 התקנה והרצה מקומית
+## 🛠 Tech Stack
 
-1. **שכפול הפרויקט:**
-   ```bash
-   git clone [https://github.com/your-username/TimeIn.git](https://github.com/your-username/TimeIn.git)
-🕒 TimeIn - מערכת חכמה לדיווח וניהול שעות עבודהTimeIn היא פלטפורמה מקיפה לניהול, ניטור ובקרה של שעות עבודה, שנועדה לייצר סנכרון מלא בין דיווחי השעות של העובדים לבין תוצרי העבודה בפועל. המערכת נותנת מענה לצרכים ניהוליים מורכבים תוך שמירה על ממשק משתמש פשוט וידידותי.🎯 מטרות המערכתבניית מערכת ברורה לדיווח וניהול שעות לפי פרויקטים ומשימות.יצירת שקיפות ניהולית המאפשרת מעקב אחרי הספק הצוות וזמני השקעה בכל משימה.חיבור ישיר בין דיווחי השעות לבין פעילות קוד ב-Git ומשימות ב-ClickUp.💻 טכנולוגיות בשימוש (Tech Stack)צד שרת (Backend)Node.js & Express: תשתית השרת לניהול ה-API והלוגיקה העסקית.PostgreSQL / MongoDB: מסד נתונים לניהול משתמשים, משימות ודיווחים.RESTful API: ארכיטקטורת תקשורת מאובטחת.Git & ClickUp APIs: אינטגרציה עמוקה למשיכת נתונים ממערכות חיצוניות.צד לקוח (Frontend)React.js: פיתוח ממשק משתמש דינמי ומהיר.Context API / Redux: ניהול מצבי המערכת בצורה יעילה.Responsive Design: התאמה מלאה לעבודה מהדפדפן במחשב ובנייד.👥 סוגי משתמשים והרשאותעובד (Employee)דיווח שעות ידני או הפעלת טיימר בזמן אמת.צפייה בהיסטוריית דיווחים אישית וסיכומי שעות (יומי, שבועי, חודשי).קישור דיווחים למשימות ב-ClickUp או לקומיטים ב-Git.מנהל (Manager)צפייה בכלל דיווחי העובדים וסינון לפי פרויקט, משימה או תאריך.אישור או דחיית דיווחים והחזרתם לבדיקה.הפקת דוחות מסכמים וזיהוי חריגות (דיווחים ארוכים מדי או ימים חסרים).אדמין (Admin)ניהול משתמשים, הגדרת פרויקטים וקביעת הרשאות מערכתיות.הגדרת אינטגרציות וחוקי דיווח (כגון מניעת חפיפות בזמנים).🛠 תכונות מרכזיות (Core Features)דיווח שעות חכםטיימר עבודה: אפשרות להתחלה, עצירה והפסקות, עם שמירה אוטומטית בסיום.מניעת שגיאות: המערכת אינה מאפשרת דיווח זמן שלילי או חפיפה בין דיווחים שונים.סטטוס דיווח: ניהול תהליך עבודה הכולל טיוטה, שליחה לאישור, אישור סופי או דחייה.אינטגרציות מתקדמותGit Integration: קישור אוטומטי בין קומיטים שבוצעו לבין שעות העבודה המדווחות לפי אימייל המשתמש.ClickUp Integration: סנכרון משימות מהמערכת התפעולית ובחירתן מתוך רשימה בעת הדיווח.📊 דוחות וניתוח נתוניםהמערכת מפיקה דוחות מפורטים הכוללים:דוח שעות לפי עובד: סיכום שעות, מספר דיווחים ופרויקטים פעילים.דוח שעות לפי פרויקט: ניתוח זמן שהושקע בכל פרויקט וחלוקה לפי עובדים.דוח חריגות: התראות על דיווחים חסרים, חפיפות או ימי עבודה ללא דיווח.🏗 מבנה הנתונים (Data Model)המערכת מבוססת על מספר ישויות ליבה:User: פרטי משתמש, תפקיד, צוות וסטטוס פעיל.Project: שם הפרויקט, מנהל אחראי, וקישורים למאגרי Git ולוחות ClickUp.TimeEntry: הישות המרכזית הכוללת זמני התחלה וסיום, משך זמן, סוג עבודה וקישורים למשימות חיצוניות.GitCommit & ClickUpTask: תיעוד המידע המגיע מהאינטגרציות לצורך הצלבת נתונים.🚀 תוכנית פיתוח (MVP)הגרסה הראשונה (MVP) מתמקדת בערך הליבה:ניהול משתמשים, פרויקטים ומשימות.מנגנון דיווח ידני וטיימר בסיסי.צפייה אישית וניהולית בסיסית.קישור ידני ראשוני ל-GitHub ו-ClickUp.פרויקט TimeIn נוצר כדי להביא סדר ודיוק לעולם דיווחי השעות, תוך שימוש בכלים הטכנולוגיים המתקדמים ביותר.
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Frontend** | [React](https://react.dev) | UI & component library |
+| **Backend** | [Node.js](https://nodejs.org) | REST API & business logic |
+| **Database** | [PostgreSQL](https://www.postgresql.org) | Relational data storage |
+| **DB Cloud** | [Neon](https://neon.tech) | Serverless Postgres hosting |
+| **Deployment** | [Vercel](https://vercel.com) | Frontend & serverless functions |
+| **AI** | [Gemini](https://deepmind.google/technologies/gemini/) | Smart suggestions & commit analysis |
+| **Task Sync** | [ClickUp API](https://clickup.com/api) | Task integration |
+| **Code Linking** | [GitHub API](https://docs.github.com/en/rest) | Commit tracking & linking |
+
+```
+                    ┌─────────────┐
+                    │   Vercel    │  ← Deploy & CDN
+                    └──────┬──────┘
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+        ┌─────▼──────┐          ┌───────▼──────┐
+        │   React    │          │   Node.js    │  ← API
+        │  Frontend  │◄────────►│   Backend    │
+        └────────────┘          └──────┬───────┘
+                                       │
+                          ┌────────────┼────────────┐
+                          │            │             │
+                   ┌──────▼───┐  ┌─────▼───┐  ┌────▼─────┐
+                   │ Neon DB  │  │ ClickUp │  │  GitHub  │
+                   │(Postgres)│  │   API   │  │   API    │
+                   └──────────┘  └─────────┘  └──────────┘
+                                       │
+                                ┌──────▼──────┐
+                                │   Gemini    │  ← AI layer
+                                └─────────────┘
+```
+
+---
+
+## 🗂 Data Model
+
+```
+User ────────────────── TimeEntry ──────────── Project
+ │                         │                      │
+ │  (Employee/Manager/     │  (Draft/Submitted/   │
+ │   Admin)                │   Approved/Rejected) │
+ │                         │                      │
+ └── Task ────────────────┘                       │
+      │                                           │
+      └───────────────────────────────────────────┘
+      
+TimeEntry also links to:
+  ├── GitCommit     (RelatedCommitIds)
+  └── ClickUpTask   (RelatedClickUpTaskId)
+```
+
+### Key Entities
+
+| Entity | Key Fields |
+|---|---|
+| `User` | `UserId`, `FullName`, `Email`, `Role`, `Team`, `IsActive` |
+| `Project` | `ProjectId`, `ProjectName`, `Status`, `ManagerId`, `GitRepoURL`, `ClickUpSpaceId` |
+| `Task` | `TaskId`, `TaskName`, `ProjectId`, `AssignedUserId`, `EstimatedHours`, `ClickUpTaskId` |
+| `TimeEntry` | `UserId`, `ProjectId`, `TaskId?`, `Date`, `StartTime`, `EndTime`, `DurationMinutes`, `Status`, `Source` |
+| `GitCommit` | `CommitHash`, `CommitMessage`, `CommitAuthor`, `LinkedUserId`, `LinkedTaskId?` |
+
+---
+
+## 🛡 Roles & Permissions
+
+| Action | Employee | Manager | Admin |
+|---|:---:|:---:|:---:|
+| Log own hours | ✅ | ✅ | ✅ |
+| Edit own entries | ✅ | ✅ | ✅ |
+| View own history | ✅ | ✅ | ✅ |
+| View team entries | ❌ | ✅ | ✅ |
+| Approve/reject entries | ❌ | ✅ | ✅ |
+| Manage users & projects | ❌ | ❌ | ✅ |
+| Configure integrations | ❌ | ❌ | ✅ |
+
+---
+
+## 🖥 Screens
+
+| Screen | Description |
+|---|---|
+| **Login** | Email + password (SSO planned) |
+| **Employee Dashboard** | Daily/weekly summary, active timer, quick log |
+| **Log Time** | Project picker, task picker, time fields, notes |
+| **My Entries** | Full history table with filters and bulk actions |
+| **Manager Panel** | Team overview, reports, drill-down by employee/project |
+| **Integrations** | Git & ClickUp connection status and mapping settings |
+
+---
+
+## 🔄 Entry Workflow
+
+```
+┌─────────┐    submit    ┌───────────┐    approve   ┌──────────┐
+│  Draft  │ ──────────→ │ Submitted │ ───────────→ │ Approved │
+└─────────┘             └───────────┘              └──────────┘
+                               │
+                               │ reject
+                               ↓
+                         ┌──────────┐
+                         │ Rejected │
+                         └──────────┘
+```
+
+> **MVP note:** approval flow is optional at launch — teams can start with direct submission and add approval gates later.
+
+---
+
+## 🚀 MVP Scope
+
+### ✅ In MVP
+- Users, roles, and basic permissions
+- Projects and tasks management
+- Manual time entry with validation
+- Basic work timer (start / pause / stop)
+- Employee personal view
+- Manager overview with filters
+- Date / employee / project / task filtering
+- Basic hours report
+- External `TaskId` field for ClickUp linkage
+- Manual `CommitHash` field for Git linkage
+
+### 🚫 Not in MVP
+- Entry approval workflow
+- Advanced notifications
+- Full bidirectional ClickUp sync
+- Smart commit-to-task auto-matching
+- Advanced analytics & graphs
+- Mobile app
+- Billing / payroll integration
+
+---
+
+## 🗺 Roadmap
+
+```
+MVP (now)
+ ├─ Manual time entry & timer
+ ├─ Employee & manager views
+ └─ External ID fields (Git / ClickUp)
+
+Phase 2
+ ├─ GitHub integration (commits → time entries)
+ ├─ ClickUp full task sync
+ ├─ Gemini-powered commit → task suggestions
+ └─ Approval workflow
+
+Phase 3
+ ├─ Smart commit → task suggestions
+ ├─ Estimate vs. actual comparison
+ ├─ Excel / CSV export
+ └─ Slack / Teams reminders
+
+Future
+ ├─ Multi-team / multi-company support
+ ├─ External API
+ └─ Payroll system integration
+```
+
+---
+
+## ⚙️ Validation Rules
+
+- Time entry **must** have a user, date, and project
+- End time must be **after** start time — no negative durations
+- Duplicate/overlapping entries for the same user trigger a **warning**
+- Task is **optional** (can be added later in a post-MVP iteration)
+- Retroactive logging is configurable per workspace by the admin
+
+---
+
+## ❓ Open Design Decisions
+
+These are intentional open questions for the team to resolve:
+
+1. Is a **task required** on every time entry, or optional?
+2. Does the manager **approve** entries, or is submission enough?
+3. **Live timer** or manual-only entry at launch?
+4. Is ClickUp the **source of truth** for tasks, or just a reference?
+5. Is Git a **display layer** or part of the core business logic?
+6. Single team or **multi-tenant** from day one?
+7. Should **retroactive logging** be allowed, and who can configure it?
+8. Do we need **overtime / salary calculations** in scope?
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
+
+1. Fork the repo
+2. Create your feature branch: `git checkout -b feature/my-feature`
+3. Commit your changes: `git commit -m 'feat: add my feature'`
+4. Push: `git push origin feature/my-feature`
+5. Open a pull request
+
+---
+
+<div align="center">
+
+Built with care for teams who want to know where their time actually goes.
+
+**[TimeIn](#)** · Report Issues · Request Features
+
+</div>
