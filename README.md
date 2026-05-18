@@ -17,13 +17,15 @@ Log hours by project, link work to Git commits and ClickUp tasks, and give manag
 <br/>
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white)
-![React](https://img.shields.io/badge/React-20232a?style=flat-square&logo=react&logoColor=61DAFB)
+![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white)
+![React](https://img.shields.io/badge/React_18-20232a?style=flat-square&logo=react&logoColor=61DAFB)
+![React Router](https://img.shields.io/badge/React_Router-CA4245?style=flat-square&logo=reactrouter&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
 ![Neon](https://img.shields.io/badge/Neon-00E5BF?style=flat-square&logo=neon&logoColor=black)
-![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
-![Gemini](https://img.shields.io/badge/Gemini_AI-8E75B2?style=flat-square&logo=google-gemini&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)
 ![ClickUp](https://img.shields.io/badge/ClickUp-7B68EE?style=flat-square&logo=clickup&logoColor=white)
 ![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
 
 </div>
 
@@ -44,51 +46,75 @@ Hours logged  →  Project context  →  Git commits  →  ClickUp tasks
 ## 🎯 Core Features
 
 ### ⏱ Time Entry
-- **Manual logging** — date, project, task, start/end or total duration
+- **Manual logging** — date, project, task, start/end or total duration, work type, and notes
 - **Live timer** — start/pause/stop with auto-generated time entry on completion
-- **Draft & submit** workflow — save entries before sending for approval
-- Overlap detection and validation built-in
+- **Timer persistence** — survives page refresh via `localStorage` (no lost sessions)
+- **Draft & submit** workflow — save entries as draft before sending for approval
+- **Overlap detection** — PostgreSQL trigger prevents duplicate time ranges for the same user per day
+- **Work types** — development, design, review, devops, meeting, QA, other
+- **Retroactive logging** — configurable per workspace by the admin (max days lookback)
 
 ### 📊 Employee Dashboard
 - Today / this week / this month summary at a glance
-- Breakdown by project and task
-- Recent entries with quick edit/copy/delete
-- Active timer always visible
+- Task breakdown chart powered by Recharts
+- Recent entries with quick edit / delete
+- Active timer widget always visible in the sidebar
 
 ### 🧑‍💼 Manager View
 - Filter by employee, project, task, or date range
 - Per-project and per-task hour breakdown
 - Daily drill-down for any team member
-- Anomaly detection: long entries, missing days, overlaps
+- Full approval queue — approve or reject with a rejection reason
 
-### 🔗 GitHub Integration *(Phase 2)*
-Pulls commits from **GitHub** and matches them to time entries by:
-- Task ID in commit message
-- Branch name
-- Author email
+### 👑 Admin Panel
+- Full user management (create, deactivate, assign to team)
+- Projects CRUD — with Git repository URL and ClickUp Space ID per project
+- **Teams** — group employees into teams, each team mapped to one or more projects
+- **Multi-project teams** — a single team can work on multiple projects via a `team_projects` junction table
+- System-wide settings (retroactive policy, Slack webhook, reminder time)
 
-> Commits are a supporting signal, not a replacement for time reports.
+### 🔗 Git Integration *(Beta)*
+- Fetch commits from a linked GitHub repository
+- Extract task references from commit messages (`#123` / `TASK-123`)
+- Store `related_commit_ids[]` directly on each time entry
+- Configurable per-project via `git_repository_url`
 
-### 📋 ClickUp Integration *(Phase 2)*
-- Sync tasks from ClickUp into TimeIn
+### 📋 ClickUp Integration *(Beta)*
+- Sync tasks from ClickUp into TimeIn via the ClickUp API
 - Select a ClickUp task when logging hours
-- Store `ClickUpTaskId` directly in each `TimeEntry`
-- Future: compare estimated vs. actual time
+- Store `related_clickup_task_id` on each time entry
+- Local cache in `clickup_task_links` table for fast lookups
+
+### 🔔 Notifications & Reminders
+- In-app notification feed per user (approve/reject events)
+- Configurable daily reminders via Slack webhook
+- Reminder time controllable from admin settings
+
+### 📤 Export & Payroll
+- CSV and Excel export of time entries
+- Payroll calculation: `hourly_rate × hours` per employee
+- Role-scoped exports (employees see own data, managers see team, admins see all)
 
 ---
 
 ## 🛠 Tech Stack
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| **Frontend** | [React](https://react.dev) | UI & component library |
-| **Backend** | [Node.js](https://nodejs.org) | REST API & business logic |
-| **Database** | [PostgreSQL](https://www.postgresql.org) | Relational data storage |
-| **DB Cloud** | [Neon](https://neon.tech) | Serverless Postgres hosting |
-| **Deployment** | [Vercel](https://vercel.com) | Frontend & serverless functions |
-| **AI** | [Gemini](https://deepmind.google/technologies/gemini/) | Smart suggestions & commit analysis |
-| **Task Sync** | [ClickUp API](https://clickup.com/api) | Task integration |
-| **Code Linking** | [GitHub API](https://docs.github.com/en/rest) | Commit tracking & linking |
+| Layer | Technology | Version | Purpose |
+|---|---|---|---|
+| **Frontend** | React | 18.2.0 | UI & component library |
+| **Routing** | React Router DOM | 6.21.0 | Client-side navigation |
+| **HTTP Client** | Axios | 1.6.5 | API requests with auto JWT injection |
+| **Charts** | Recharts | 2.10.0 | Dashboard statistics visualizations |
+| **Backend** | Express.js | 4.18.2 | REST API & middleware |
+| **Database** | PostgreSQL (Neon) | — | Relational data + serverless cloud hosting |
+| **Auth** | JWT + bcryptjs | — | Token authentication + password hashing |
+| **Validation** | express-validator | 7.0.1 | Input validation & sanitization |
+| **Logging** | Morgan | 1.10.0 | HTTP request logging |
+| **Dev Server** | nodemon | 3.0.2 | Auto-restart on file changes |
+| **Deployment** | Vercel | — | Frontend CDN + serverless backend |
+| **Task Sync** | ClickUp API | — | Task integration (beta) |
+| **Code Linking** | GitHub API | — | Commit tracking & linking (beta) |
+| **Messaging** | Slack Webhooks | — | Reminders & notifications |
 
 ```
                     ┌─────────────┐
@@ -98,19 +124,20 @@ Pulls commits from **GitHub** and matches them to time entries by:
               ┌────────────┴────────────┐
               │                         │
         ┌─────▼──────┐          ┌───────▼──────┐
-        │   React    │          │   Node.js    │  ← API
+        │   React    │          │   Node.js    │  ← Express API
         │  Frontend  │◄────────►│   Backend    │
+        │  (port 3000)│         │  (port 4000) │
         └────────────┘          └──────┬───────┘
                                        │
                           ┌────────────┼────────────┐
                           │            │             │
                    ┌──────▼───┐  ┌─────▼───┐  ┌────▼─────┐
                    │ Neon DB  │  │ ClickUp │  │  GitHub  │
-                   │(Postgres)│  │   API   │  │   API    │
+                   │(Postgres)│  │  API β  │  │  API β   │
                    └──────────┘  └─────────┘  └──────────┘
                                        │
                                 ┌──────▼──────┐
-                                │   Gemini    │  ← AI layer
+                                │    Slack    │  ← Webhooks
                                 └─────────────┘
 ```
 
@@ -119,29 +146,42 @@ Pulls commits from **GitHub** and matches them to time entries by:
 ## 🗂 Data Model
 
 ```
-User ────────────────── TimeEntry ──────────── Project
- │                         │                      │
- │  (Employee/Manager/     │  (Draft/Submitted/   │
- │   Admin)                │   Approved/Rejected) │
- │                         │                      │
- └── Task ────────────────┘                       │
-      │                                           │
-      └───────────────────────────────────────────┘
-      
-TimeEntry also links to:
-  ├── GitCommit     (RelatedCommitIds)
-  └── ClickUpTask   (RelatedClickUpTaskId)
+Team ──────────────────────────────────── team_projects ──── Project
+ │                                                                │
+ │  (manager_id → User)                                          │
+ │                                                            Task │
+ │                                                                │
+User ─────────────────────── TimeEntry ─────────────────────────┘
+ │    (employee/manager/admin)   │   (draft/submitted/approved/rejected)
+ │                               │
+ │                               ├── GitCommit    (related_commit_ids[])
+ │                               └── ClickUpTask  (related_clickup_task_id)
+ │
+ └── Notification
 ```
 
-### Key Entities
+### Key Tables
 
-| Entity | Key Fields |
+| Table | Key Fields |
 |---|---|
-| `User` | `UserId`, `FullName`, `Email`, `Role`, `Team`, `IsActive` |
-| `Project` | `ProjectId`, `ProjectName`, `Status`, `ManagerId`, `GitRepoURL`, `ClickUpSpaceId` |
-| `Task` | `TaskId`, `TaskName`, `ProjectId`, `AssignedUserId`, `EstimatedHours`, `ClickUpTaskId` |
-| `TimeEntry` | `UserId`, `ProjectId`, `TaskId?`, `Date`, `StartTime`, `EndTime`, `DurationMinutes`, `Status`, `Source` |
-| `GitCommit` | `CommitHash`, `CommitMessage`, `CommitAuthor`, `LinkedUserId`, `LinkedTaskId?` |
+| `users` | `id`, `full_name`, `email`, `password_hash`, `role`, `team_id`, `hourly_rate`, `is_active` |
+| `teams` | `id`, `name`, `manager_id` |
+| `team_projects` | `team_id`, `project_id` — M:N junction |
+| `projects` | `id`, `project_name`, `status`, `manager_id`, `git_repository_url`, `clickup_space_id` |
+| `tasks` | `id`, `task_name`, `project_id`, `assigned_user_id`, `status`, `priority`, `estimated_hours`, `clickup_task_id` |
+| `time_entries` | `id`, `user_id`, `project_id`, `task_id?`, `date`, `start_time`, `end_time`, `duration_minutes`, `work_type`, `description`, `source`, `status`, `related_commit_ids[]`, `related_clickup_task_id`, `approved_by`, `rejection_reason` |
+| `git_commits` | `commit_hash`, `commit_message`, `commit_author_email`, `linked_user_id`, `linked_task_id`, `linked_time_entry_id` |
+| `clickup_task_links` | `clickup_task_id`, `task_name`, `project_id`, `status`, `estimated_time`, `last_sync_date` |
+| `notifications` | `id`, `user_id`, `message`, `link`, `is_read`, `created_at` |
+| `settings` | `key`, `value` — e.g. `retroactive_allowed`, `retroactive_max_days`, `slack_webhook_url`, `reminder_hour` |
+| `api_keys` | `id`, `name`, `key_hash`, `key_prefix`, `user_id`, `is_active`, `last_used` |
+
+### Database Constraints & Triggers
+- **Overlap prevention** — PostgreSQL `TRIGGER check_time_overlap()` blocks same-user overlapping entries per day
+- **Role enum** — `role IN ('employee', 'manager', 'admin')`
+- **Status flow** — `status IN ('draft', 'submitted', 'approved', 'rejected')`
+- **Work type enum** — `work_type IN ('development', 'design', 'review', 'devops', 'meeting', 'qa', 'other')`
+- **Cascade deletes** — Projects → Tasks, Teams → Users
 
 ---
 
@@ -153,22 +193,30 @@ TimeEntry also links to:
 | Edit own entries | ✅ | ✅ | ✅ |
 | View own history | ✅ | ✅ | ✅ |
 | View team entries | ❌ | ✅ | ✅ |
-| Approve/reject entries | ❌ | ✅ | ✅ |
-| Manage users & projects | ❌ | ❌ | ✅ |
+| Approve / reject entries | ❌ | ✅ | ✅ |
+| Export team data | ❌ | ✅ | ✅ |
+| Manage users & teams | ❌ | ❌ | ✅ |
+| Manage projects | ❌ | ❌ | ✅ |
 | Configure integrations | ❌ | ❌ | ✅ |
+| Manage API keys | ❌ | ❌ | ✅ |
+| System settings | ❌ | ❌ | ✅ |
+
+> **Role scoping** is enforced both in middleware (`requireRole()`) and at the SQL query level — employees always receive only their own rows, managers receive their team's rows, admins receive all rows.
 
 ---
 
 ## 🖥 Screens
 
-| Screen | Description |
-|---|---|
-| **Login** | Email + password (SSO planned) |
-| **Employee Dashboard** | Daily/weekly summary, active timer, quick log |
-| **Log Time** | Project picker, task picker, time fields, notes |
-| **My Entries** | Full history table with filters and bulk actions |
-| **Manager Panel** | Team overview, reports, drill-down by employee/project |
-| **Integrations** | Git & ClickUp connection status and mapping settings |
+| Screen | Route | Roles | Description |
+|---|---|---|---|
+| **Login** | `/login` | All | Email/password + Google OAuth |
+| **Dashboard** | `/` | All | Daily/weekly/monthly summary, active timer, task breakdown chart, recent entries |
+| **Log Time** | `/log-time` | All | Manual entry form + live timer with persistence |
+| **My Entries** | `/my-entries` | All | Full history table — edit, delete, submit |
+| **Management** | `/management` | Manager, Admin | Team overview, approval queue, drill-down by employee/project/date |
+| **Projects** | `/projects` | Admin | Projects CRUD with Git & ClickUp config |
+| **Teams** | `/teams` | Admin | Teams CRUD, member assignment, project mapping |
+| **Integrations** | `/integrations` | Admin | Git & ClickUp connection status and mapping |
 
 ---
 
@@ -179,66 +227,135 @@ TimeEntry also links to:
 │  Draft  │ ──────────→ │ Submitted │ ───────────→ │ Approved │
 └─────────┘             └───────────┘              └──────────┘
                                │
-                               │ reject
+                               │ reject (with reason)
                                ↓
                          ┌──────────┐
-                         │ Rejected │
+                         │ Rejected │  → Employee can edit & resubmit
                          └──────────┘
 ```
 
-> **MVP note:** approval flow is optional at launch — teams can start with direct submission and add approval gates later.
+Entries can originate from three sources stored in the `source` field:
+- `manual` — filled in by the user on the Log Time page
+- `timer` — generated automatically when the live timer is stopped
+- `git` — created or linked via the Git integration
 
 ---
 
-## 🚀 MVP Scope
+## 🚀 Getting Started
 
-### ✅ In MVP
-- Users, roles, and basic permissions
-- Projects and tasks management
-- Manual time entry with validation
-- Basic work timer (start / pause / stop)
-- Employee personal view
-- Manager overview with filters
-- Date / employee / project / task filtering
-- Basic hours report
-- External `TaskId` field for ClickUp linkage
-- Manual `CommitHash` field for Git linkage
+### Prerequisites
+- Node.js ≥ 18
+- A [Neon](https://neon.tech) PostgreSQL database (or any Postgres instance)
 
-### 🚫 Not in MVP
-- Entry approval workflow
-- Advanced notifications
-- Full bidirectional ClickUp sync
-- Smart commit-to-task auto-matching
-- Advanced analytics & graphs
-- Mobile app
-- Billing / payroll integration
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/Tamar-Winer/TimeIn_Multi_Tech_App_2026.git
+cd timein
+
+# Install backend dependencies
+cd timein-backend && npm install
+
+# Install frontend dependencies
+cd ../timein-frontend && npm install
+```
+
+### 2. Configure Environment
+
+**`timein-backend/.env`**
+```env
+PORT=4000
+DATABASE_URL=postgresql://user:password@host/dbname
+JWT_SECRET=your_secret_key
+JWT_EXPIRES_IN=7d
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+```
+
+**`timein-frontend/.env`**
+```env
+REACT_APP_API_URL=http://localhost:4000/api
+REACT_APP_GOOGLE_CLIENT_ID=your_google_oauth_client_id
+```
+
+### 3. Run
+
+The backend auto-runs all database migrations on startup (no manual SQL needed).
+
+```bash
+# Terminal 1 — Backend
+cd timein-backend
+npm run dev        # nodemon on port 4000
+
+# Terminal 2 — Frontend
+cd timein-frontend
+npm start          # React dev server on port 3000
+```
+
+### 4. Seed an Admin User
+
+```bash
+cd timein-backend
+node src/db/seed_admin.js
+```
+
+---
+
+## ✅ What's Built
+
+| Feature | Status |
+|---|---|
+| Email/password auth with JWT | ✅ Done |
+| Google OAuth login | ✅ Done |
+| Role-based access control (Employee / Manager / Admin) | ✅ Done |
+| Teams with multi-project assignment | ✅ Done |
+| Projects & tasks management | ✅ Done |
+| Manual time entry with validation | ✅ Done |
+| Live timer with localStorage persistence | ✅ Done |
+| Time entry approval workflow | ✅ Done |
+| Employee dashboard with charts | ✅ Done |
+| Manager view (drill-down, approval queue) | ✅ Done |
+| Reports by user / project / task | ✅ Done |
+| Role-scoped SQL queries | ✅ Done |
+| PostgreSQL overlap-prevention trigger | ✅ Done |
+| Retroactive logging policy (configurable) | ✅ Done |
+| In-app notifications | ✅ Done |
+| CSV / Excel export | ✅ Done |
+| Payroll calculation (hourly rate × hours) | ✅ Done |
+| API key management | ✅ Done |
+| Git commit fetching & linking | ✅ Beta |
+| ClickUp task sync | ✅ Beta |
+| Slack reminders & webhooks | ✅ Beta |
 
 ---
 
 ## 🗺 Roadmap
 
 ```
-MVP (now)
- ├─ Manual time entry & timer
- ├─ Employee & manager views
+MVP (complete)
+ ├─ Manual time entry & live timer
+ ├─ Role-based access (Employee / Manager / Admin)
+ ├─ Teams with multi-project support
+ ├─ Approval workflow (draft → submitted → approved/rejected)
+ ├─ Dashboard with charts and reports
+ ├─ Google OAuth
  └─ External ID fields (Git / ClickUp)
 
 Phase 2
- ├─ GitHub integration (commits → time entries)
- ├─ ClickUp full task sync
+ ├─ Auto-match Git commits to time entries (AI-assisted)
+ ├─ ClickUp full bi-directional task sync
  ├─ Gemini-powered commit → task suggestions
- └─ Approval workflow
+ └─ Real-time updates via WebSockets
 
 Phase 3
- ├─ Smart commit → task suggestions
  ├─ Estimate vs. actual comparison
- ├─ Excel / CSV export
- └─ Slack / Teams reminders
+ ├─ Advanced Excel reports
+ └─ Mobile app
 
 Future
- ├─ Multi-team / multi-company support
- ├─ External API
- └─ Payroll system integration
+ ├─ Multi-company / multi-tenant support
+ ├─ External public API
+ └─ Full payroll system integration
 ```
 
 ---
@@ -247,24 +364,9 @@ Future
 
 - Time entry **must** have a user, date, and project
 - End time must be **after** start time — no negative durations
-- Duplicate/overlapping entries for the same user trigger a **warning**
-- Task is **optional** (can be added later in a post-MVP iteration)
-- Retroactive logging is configurable per workspace by the admin
-
----
-
-## ❓ Open Design Decisions
-
-These are intentional open questions for the team to resolve:
-
-1. Is a **task required** on every time entry, or optional?
-2. Does the manager **approve** entries, or is submission enough?
-3. **Live timer** or manual-only entry at launch?
-4. Is ClickUp the **source of truth** for tasks, or just a reference?
-5. Is Git a **display layer** or part of the core business logic?
-6. Single team or **multi-tenant** from day one?
-7. Should **retroactive logging** be allowed, and who can configure it?
-8. Do we need **overtime / salary calculations** in scope?
+- **Overlapping entries** for the same user on the same day are blocked at the database level
+- Task is **optional** on an entry (can be added or changed later)
+- Retroactive logging window is **configurable** by the admin (`retroactive_max_days`)
 
 ---
 
